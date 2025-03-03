@@ -1,0 +1,14 @@
+configure .env
+* .env
+*.log
+settings.py
+esc-server/pyvenv.cfg
+/__pycache__/
+/bin/
+
+
+.DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
