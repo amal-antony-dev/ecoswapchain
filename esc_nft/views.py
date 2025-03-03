@@ -129,42 +129,44 @@ class NFTMintView(APIView):
                 nft = NFT.objects.get(id=nft_id, owner=trader)
                 print(nft.id)
                 print(nft.owner.wallet.pk)
-                # transactionData = {
-                #     "transaction_hash": txHash,
-                #     "amount": 20,
-                #     "transfered_to": nft.owner.wallet.pk,
-                #     "transaction_type": "FEE",
-                #     "status": "CONFIRMED"
-                # }
+                transactionData = {
+                    "transaction_hash": txHash,
+                    "amount": 20,
+                    "transfered_to": nft.owner.wallet.pk,
+                    "transaction_type": "FEE",
+                    "status": "CONFIRMED"
+                }
 
-                # transaction_serializer = TokenTransactionCreationSerializer(data=transactionData)
-                # if transaction_serializer.is_valid():
-                #     transaction_serializer.save()
-                # else:
-                #     print(transaction_serializer.errors)
-                #     raise ValidationError(transaction_serializer.errors)
+                transaction_serializer = TokenTransactionCreationSerializer(data=transactionData)
+                if transaction_serializer.is_valid():
+                    transaction_serializer.save()
+                else:
+                    print(transaction_serializer.errors)
+                    raise ValidationError(transaction_serializer.errors)
             except Exception as e:
                 print(str(e))
                 return Response({"message": "NFT not found"}, status=status.HTTP_404_NOT_FOUND)
 
             # Get and update the NFT URI
-            # try:
-            #     uri = get_uri(nft)
-            #     print(uri)
-            #     nft.uri = uri
-            #     nft.save()
-            # except Exception as e:
-            #     return Response({"message": f"Error generating URI: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            try:
+                uri = get_uri(nft)
+                print(uri)
+                nft.uri = uri
+                nft.save()
+            except Exception as e:
+                return Response({"message": f"Error generating URI: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             # Mint the NFT
             try:
-                data = mint(nft)
-                print("NFT data: ", data)
+                tx = mint(nft)
+                if tx is not None:
+                    print("NFT data: ", tx)
+                    return Response({"tx" : {
+                    "txHash" : tx["txHash"], "mintAddress" : tx["mintAddress"]}}, status=status.HTTP_200_OK)
             except Exception as e:
                 print(str(e))
                 return Response({"message": f"Error minting NFT: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            return Response({"message": "success", "data": data}, status=status.HTTP_200_OK)
 
         except Exception as e:
             print(str(e))
