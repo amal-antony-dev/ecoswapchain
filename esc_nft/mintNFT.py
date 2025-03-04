@@ -41,6 +41,8 @@ def mint(nft):
             # Update NFT address
             if txData.get("nftType") == "NFT":
                 nft.address = txData["mintAddress"]
+                nft.nft_type = "NFT"
+                nft.status = True
                 nft.save()
             
             # Prepare transaction data

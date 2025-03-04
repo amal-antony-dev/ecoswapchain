@@ -7,7 +7,7 @@ from django.core.exceptions import ObjectDoesNotExist
 import json
 from .models import NFT
 from esc_product.models import Product, ProductImage, RootCategory, MainCategory
-from .serializer import NFTSerializer, ProductSerializer
+from .serializer import NFTSerializer, ProductSerializer, NFTListSerializer
 from esc_product.serializer import ProductRetrieveSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -132,7 +132,7 @@ class NFTMintView(APIView):
                 transactionData = {
                     "transaction_hash": txHash,
                     "amount": 20,
-                    "transfered_to": nft.owner.wallet.pk,
+                    "transfered_from": nft.owner.wallet.pk,
                     "transaction_type": "FEE",
                     "status": "CONFIRMED"
                 }
@@ -150,8 +150,7 @@ class NFTMintView(APIView):
             # Get and update the NFT URI
             try:
                 uri = get_uri(nft)
-                print(uri)
-                nft.uri = uri
+                nft.uri = uri["uri"]
                 nft.save()
             except Exception as e:
                 return Response({"message": f"Error generating URI: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -174,4 +173,37 @@ class NFTMintView(APIView):
 
         
         
+class DeleteNFTObjectView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    
+    def delete(self, request, nftId):
+        try:
+            nft = NFT.objects.get(pk=nftId)
+            if not nft.status:
+                nft.delete()
+                return Response({"message" : "Successfully Deleted"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"message" : "Cannot delete a verified Asset"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"message" : "Internal Server Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+class OwnedNFTListView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    
+    def get(self, request):
+        try:
+            nfts = NFT.objects.filter(owner__eco_user=request.user)  # ✅ Use filter() to get multiple NFTs
+            
+            if not nfts.exists():  # ✅ Handle case where user has no NFTs
+                return Response({"message": "No NFTs found"}, status=status.HTTP_404_NOT_FOUND)
+
+            nft_serializer = NFTListSerializer(nfts, many=True)  # ✅ Correct serializer usage
+            return Response({"nfts": nft_serializer.data}, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            print(e)
+            return Response({"message": f"Internal Server Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         

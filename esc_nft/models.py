@@ -30,7 +30,7 @@ class NFT(models.Model):
         ("CNFT", "cnft")
     ]
     
-    nft_type = models.CharField(max_length=50, choices=types, null=True)
+    nftType = models.CharField(max_length=50, choices=types, null=True)
     
     leaf_index = models.IntegerField(null=True, blank=True)  # Index of the leaf node
     tree_address = models.CharField(max_length=200, null=True, blank=True)  # Address of the Merkle Tree
