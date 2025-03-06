@@ -7,14 +7,14 @@ from django.core.exceptions import ObjectDoesNotExist
 import json
 from .models import NFT
 from esc_product.models import Product, ProductImage, RootCategory, MainCategory
-from .serializer import NFTSerializer, ProductSerializer, NFTListSerializer
-from esc_product.serializer import ProductRetrieveSerializer
+from .serializer import NFTSerializer, ProductSerializer, NFTListSerializer, NFTDetailSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 from esc_trader.models import Trader
 from .uploadImage import get_uri
 from .mintNFT import mint
 from esc_transaction.serializer import TokenTransactionCreationSerializer
+from esc_product.models import Materials, Certification
 
 class NFTCreateView(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -25,6 +25,7 @@ class NFTCreateView(APIView):
         try:
             request_data = request.data.copy()
             
+            print(request_data)
             # Extract and validate product data
             product_data = request_data.pop("product", None)
             if not product_data:
@@ -45,14 +46,27 @@ class NFTCreateView(APIView):
                 return Response({"error": "Product data must be a dictionary."}, status=status.HTTP_400_BAD_REQUEST)
 
             # Validate and save product
+            certificate_data = product_data.pop("certifications", [])
+            materials_data = product_data.pop("materialsUsed", [])
+            
+            
+            
             product_serializer = ProductSerializer(data=product_data)
             if not product_serializer.is_valid():
                 return Response(product_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
             product = product_serializer.save()
+            
+            for certificate in certificate_data:
+                Certification.objects.create(product=product, **certificate)
+                
+            for material in materials_data:
+                m = Materials.objects.create(name=material)
+                product.materials.add(m)
 
             # Handle features (JSONField)
             features = product_data.get("features", "[]")
+            
             if isinstance(features, str):
                 try:
                     features = json.loads(features)
@@ -99,6 +113,7 @@ class NFTCreateView(APIView):
 
 
         except Exception as e:
+            print(e)
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -207,3 +222,28 @@ class OwnedNFTListView(APIView):
             return Response({"message": f"Internal Server Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         
+              
+class NFTListView(APIView):
+    
+    def get(self, request):
+        try:
+            nfts = NFT.objects.filter(status=True)
+            nft_serializer = NFTListSerializer(nfts, many=True)
+            return Response({"nfts": nft_serializer.data}, status=status.HTTP_200_OK)
+        except Exception as e: 
+            print(e)
+            return Response({"message": "Internal Server Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
+
+class NFTRetrieveView(APIView):
+    def get(self, request, nftId):
+        try:
+            nft = NFT.objects.get(pk=nftId)
+            nft_serializer = NFTDetailSerializer(nft)
+            return Response({"nft": nft_serializer.data}, status=status.HTTP_200_OK)
+        except ObjectDoesNotExist:
+            return Response({"message": "NFT not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(e)
+            return Response({"message": "Internal Server Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

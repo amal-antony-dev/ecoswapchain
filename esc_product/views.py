@@ -18,3 +18,4 @@ class CategoryRetrieveView(APIView):
             "root": root_data,
             "main": main_data
         }, status=200)
+        
