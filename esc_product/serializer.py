@@ -10,7 +10,9 @@ class ProductImageSerializer(serializers.ModelSerializer):
         # Flatten the image URL and rename fields to match the frontend
         return {
             'id': str(instance.id),
-            'url': instance.image.url,  # Ensure MEDIA_URL is configured in Django settings
+            'url': instance.image.url, 
+            'alt' : "Product Image",
+            # Ensure MEDIA_URL is configured in Django settings
         }
 
 class CertificationSerializer(serializers.ModelSerializer):
@@ -46,31 +48,76 @@ class MaterialSerializer(serializers.ModelSerializer):
         fields = ["name"]
         
           
+from rest_framework import serializers
+from .models import Product, RootCategory, MainCategory, Materials, Certification, ProductImage
+
+class CertificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Certification
+        fields = '__all__'
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = '__all__'
+
 class ProductSerializer(serializers.ModelSerializer):
     rootCategory = serializers.CharField(source="rootCategory.name", read_only=True)
     mainCategory = serializers.CharField(source="mainCategory.name", read_only=True)
     materials = serializers.SerializerMethodField(read_only=True)
     certifications = CertificationSerializer(many=True, read_only=True)
     additionalImages = ProductImageSerializer(many=True, read_only=True)
-    recycledContent = serializers.FloatField(source='recycled_content')
-    carbonFootprint = serializers.FloatField(source='carbon_footprint')
-    energyEfficiency = serializers.FloatField(source='energy_efficiency')
-    repairabilityScore = serializers.FloatField(source='repairability_score')
+    
+    features = serializers.JSONField()
+    condition = serializers.CharField(allow_null=True, allow_blank=True)
+    additionalMaterials = serializers.JSONField(source='additional_materials', read_only=True)
+    
+    recycledContent = serializers.FloatField(source='recycled_content', allow_null=True)
+    recyclability = serializers.BooleanField()
+    carbonFootprint = serializers.FloatField(source='carbon_footprint', allow_null=True)
+    energyEfficiency = serializers.FloatField(source='energy_efficiency', allow_null=True)
+    durability = serializers.IntegerField(allow_null=True)
+    repairabilityScore = serializers.FloatField(source='repairability_score', allow_null=True)
+    
     ethicalSourcing = serializers.BooleanField(source='ethical_sourcing')
     crueltyFree = serializers.BooleanField(source='cruelity_free')
     plasticFree = serializers.BooleanField(source='plastic_free')
-    additionalMaterials = serializers.JSONField(source='additional_materials')
+    natural = serializers.BooleanField()
+    destructable = serializers.BooleanField()
+    hazardous = serializers.BooleanField()
 
     class Meta:
         model = Product
-        fields = '__all__'
+        fields = [
+            "id",
+            "rootCategory",
+            "mainCategory",
+            "materials",
+            "certifications",
+            "additionalImages",
+            "features",
+            "condition",
+            "additionalMaterials",
+            "recycledContent",
+            "recyclability",
+            "carbonFootprint",
+            "energyEfficiency",
+            "durability",
+            "repairabilityScore",
+            "ethicalSourcing",
+            "crueltyFree",
+            "plasticFree",
+            "natural",
+            "destructable",
+            "hazardous",
+        ]
         extra_kwargs = {
-            'rootCategory': {'write_only': True},
-            'mainCategory': {'write_only': True},
+            "rootCategory": {"write_only": True},
+            "mainCategory": {"write_only": True},
         }
-        
+
     def get_materials(self, obj):
-        return list(obj.materials.values_list("name", flat=True))  # Returns only names
+        return list(obj.materials.values_list("name", flat=True))  # Returns only material names
 
     def _handle_category(self, category_data, category_model):
         """
@@ -80,7 +127,7 @@ class ProductSerializer(serializers.ModelSerializer):
         if not category_data:
             return None
 
-        category_name = category_data.get('name')
+        category_name = category_data.get("name")
         if not category_name:
             return None
 
@@ -93,36 +140,34 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         # Handle rootCategory
-        root_category_data = validated_data.pop('rootCategory', None)
+        root_category_data = validated_data.pop("rootCategory", None)
         root_category = self._handle_category(root_category_data, RootCategory)
         if root_category:
-            validated_data['rootCategory'] = root_category
+            validated_data["rootCategory"] = root_category
 
         # Handle mainCategory
-        main_category_data = validated_data.pop('mainCategory', None)
+        main_category_data = validated_data.pop("mainCategory", None)
         main_category = self._handle_category(main_category_data, MainCategory)
         if main_category:
-            validated_data['mainCategory'] = main_category
-            
-        
+            validated_data["mainCategory"] = main_category
 
         # Create the product
         product = Product.objects.create(**validated_data)
-        
+
         return product
 
     def update(self, instance, validated_data):
         # Handle rootCategory
-        root_category_data = validated_data.pop('rootCategory', None)
+        root_category_data = validated_data.pop("rootCategory", None)
         root_category = self._handle_category(root_category_data, RootCategory)
         if root_category:
-            instance.root_category = root_category
+            instance.rootCategory = root_category
 
         # Handle mainCategory
-        main_category_data = validated_data.pop('mainCategory', None)
+        main_category_data = validated_data.pop("mainCategory", None)
         main_category = self._handle_category(main_category_data, MainCategory)
         if main_category:
-            instance.main_category = main_category
+            instance.mainCategory = main_category
 
         # Update other fields
         for attr, value in validated_data.items():
@@ -130,7 +175,18 @@ class ProductSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-
-
-
-
+    def to_representation(self, instance):
+        """Customize the output to match the exact format needed."""
+        representation = super().to_representation(instance)
+        
+        # Format additionalImages to match ProductImageSerializer's representation
+        representation['additionalImages'] = [
+            {
+                'id': str(image.id),
+                'url': image.image.url, 
+                'alt': "Product Image"
+            }
+            for image in instance.additionalImages.all()
+        ]
+        
+        return representation

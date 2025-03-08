@@ -1,0 +1,69 @@
+from django.db import models
+
+class Address(models.Model):
+    trader = models.ForeignKey("esc_trader.Trader", on_delete=models.CASCADE, related_name='addresses')
+    street = models.CharField(max_length=255)
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    postal_code = models.CharField(max_length=20)
+    country = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"{self.street}, {self.city}, {self.country}"
+    
+    
+class Message(models.Model):
+    order = models.ForeignKey('esc_order.SwapOrder', on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey('esc_trader.Trader', on_delete=models.CASCADE, related_name='sent_messages')
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Message from {self.sender} at {self.timestamp}"
+
+
+class ShippingDetails(models.Model):
+    SHIPPING_METHOD_CHOICES = [
+        ('platform', 'Platform Shipping'),
+        ('self', 'Self Exchange'),
+    ]
+
+    shipping_method = models.CharField(max_length=20, choices=SHIPPING_METHOD_CHOICES, null=True, blank=True)
+    seller_address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name='seller_shipping_details')
+    buyer_address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name='buyer_shipping_details')
+    tracking_number = models.CharField(max_length=100, blank=True, null=True)
+    shipping_confirmed_by_seller = models.BooleanField(default=False)
+    shipping_confirmed_by_buyer = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Shipping Details for Order {self.order.id}"
+
+
+class SwapOrder(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('shipped', 'Shipped'),
+        ('delivered', 'Delivered'),
+        ('cancelled', 'Cancelled'),
+        ('disputed', 'Disputed'),
+    ]
+
+    PAYMENT_STATUS_CHOICES = [
+        ('unpaid', 'Unpaid'),
+        ('partial', 'Partial Payment'),
+        ('paid', 'Paid'),
+        ('refunded', 'Refunded'),
+    ]
+    id = models.UUIDField(primary_key=True, auto_created=True, unique=True)
+    item = models.ForeignKey('esc_nft.NFT', on_delete=models.CASCADE, related_name='orders')
+    seller = models.ForeignKey('esc_trader.Trader', on_delete=models.CASCADE, related_name='orders_as_seller')
+    buyer = models.ForeignKey('esc_trader.Trader', on_delete=models.CASCADE, related_name='orders_as_buyer')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    shipping_details = models.OneToOneField(ShippingDetails, on_delete=models.SET_NULL, null=True, blank=True, related_name='order')
+
+    def __str__(self):
+        return f"Order {self.id} - {self.product.name} ({self.status})"

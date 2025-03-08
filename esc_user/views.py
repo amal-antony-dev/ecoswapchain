@@ -42,7 +42,8 @@ class CheckUser(APIView):
             return Response({
                 "first_name": request.user.first_name,
                 "last_name": request.user.last_name,
-                "role": request.user.role
+                "role": request.user.role,
+                "id" : request.user.id
             }, status=status.HTTP_200_OK)
         
         except AuthenticationFailed:

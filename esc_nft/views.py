@@ -48,7 +48,7 @@ class NFTCreateView(APIView):
             # Validate and save product
             certificate_data = product_data.pop("certifications", [])
             materials_data = product_data.pop("materialsUsed", [])
-            
+            additionalMaterials = product_data.pop("additionalMaterials", [])
             
             
             product_serializer = ProductSerializer(data=product_data)
@@ -57,12 +57,14 @@ class NFTCreateView(APIView):
             
             product = product_serializer.save()
             
+            product.additional_materials = additionalMaterials
+            
             for certificate in certificate_data:
                 Certification.objects.create(product=product, **certificate)
-                
             for material in materials_data:
-                m = Materials.objects.create(name=material)
+                m, created = Materials.objects.get_or_create(name=material)
                 product.materials.add(m)
+            product.save()
 
             # Handle features (JSONField)
             features = product_data.get("features", "[]")

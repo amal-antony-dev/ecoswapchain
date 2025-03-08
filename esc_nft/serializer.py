@@ -27,13 +27,24 @@ class NFTListSerializer(serializers.ModelSerializer):
 
 class NFTDetailSerializer(serializers.ModelSerializer):
     product = ProductSerializer()
-    image = serializers.ImageField(source="mainImage")  # Rename mainImage to image
+    mainImage = serializers.SerializerMethodField()  # Ensure it's included in `fields`
     ownerPublicKey = serializers.CharField(source="owner.wallet.public_key")  # Flatten owner's public key
     createdAt = serializers.DateTimeField(source="timestamp")  # Rename timestamp to createdAt
     leafIndex = serializers.IntegerField(source="leaf_index")  # Rename leaf_index to leafIndex
     treeAddress = serializers.CharField(source="tree_address")  # Rename tree_address to treeAddress
+    traderId = serializers.IntegerField(source="owner.eco_user.id")
+
     class Meta:
         model = NFT
         fields = ["id", "address", "name", "description", "price", "product",
-                  "exchange", "image", "timestamp", "nftType", "leafIndex", 
-                  "treeAddress", "uri", "ownerPublicKey", "createdAt", 'status']
+                  "exchange", "mainImage", "nftType", "leafIndex", 
+                  "treeAddress", "uri", "ownerPublicKey", "createdAt", "status", "traderId"]  # Removed 'timestamp'
+
+    def get_mainImage(self, obj):
+        if obj.mainImage:  # Ensure mainImage exists
+            return {
+                "id": obj.id,
+                "url": obj.mainImage.url if obj.mainImage else None,  # Use `.url` for ImageField
+                "alt": "NFT Image"
+            }
+        return None  # Return None if no image exists
