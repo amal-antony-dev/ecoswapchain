@@ -1,4 +1,5 @@
 from django.db import models
+import uuid
 
 class Address(models.Model):
     trader = models.ForeignKey("esc_trader.Trader", on_delete=models.CASCADE, related_name='addresses')
@@ -14,7 +15,7 @@ class Address(models.Model):
     
 class Message(models.Model):
     order = models.ForeignKey('esc_order.SwapOrder', on_delete=models.CASCADE, related_name='messages')
-    sender = models.ForeignKey('esc_trader.Trader', on_delete=models.CASCADE, related_name='sent_messages')
+    sender = models.ForeignKey('esc_user.EcoUser', on_delete=models.CASCADE, related_name='sent_messages') 
     message = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
 
@@ -55,7 +56,7 @@ class SwapOrder(models.Model):
         ('paid', 'Paid'),
         ('refunded', 'Refunded'),
     ]
-    id = models.UUIDField(primary_key=True, auto_created=True, unique=True)
+    id = models.UUIDField(primary_key=True, auto_created=True, unique=True, default=uuid.uuid4)
     item = models.ForeignKey('esc_nft.NFT', on_delete=models.CASCADE, related_name='orders')
     seller = models.ForeignKey('esc_trader.Trader', on_delete=models.CASCADE, related_name='orders_as_seller')
     buyer = models.ForeignKey('esc_trader.Trader', on_delete=models.CASCADE, related_name='orders_as_buyer')
