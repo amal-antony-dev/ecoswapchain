@@ -3,6 +3,7 @@ from esc_product.models import Product, ProductImage, MainCategory, RootCategory
 from .models import NFT
 from rest_framework import serializers
 from esc_product.serializer import ProductSerializer
+from esc_transaction.serializer import NFTTransactionRetrieveSerializer
 
 
 class NFTSerializer(serializers.ModelSerializer):
@@ -33,6 +34,7 @@ class NFTDetailSerializer(serializers.ModelSerializer):
     leafIndex = serializers.IntegerField(source="leaf_index")  # Rename leaf_index to leafIndex
     treeAddress = serializers.CharField(source="tree_address")  # Rename tree_address to treeAddress
     traderId = serializers.IntegerField(source="owner.eco_user.id")
+    ownershipHistory = serializers.SerializerMethodField()
 
     class Meta:
         model = NFT
@@ -48,3 +50,7 @@ class NFTDetailSerializer(serializers.ModelSerializer):
                 "alt": "NFT Image"
             }
         return None  # Return None if no image exists
+    
+    def get_ownershipHistory(self, obj):
+        transactions = obj.ownership_history.filter(status="CONFIRMED")
+        return NFTTransactionRetrieveSerializer(transactions, many=True).data

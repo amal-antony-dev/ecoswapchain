@@ -2,12 +2,14 @@ from django.db import models
 import uuid
 
 class Address(models.Model):
-    trader = models.ForeignKey("esc_trader.Trader", on_delete=models.CASCADE, related_name='addresses')
+    trader = models.ForeignKey("esc_trader.Trader", on_delete=models.CASCADE, related_name='addresses', null=True)
+    house_no_or_name = models.CharField(max_length=100)
     street = models.CharField(max_length=255)
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100)
     postal_code = models.CharField(max_length=20)
     country = models.CharField(max_length=100)
+    landmark = models.CharField(max_length=100)
 
     def __str__(self):
         return f"{self.street}, {self.city}, {self.country}"
@@ -25,7 +27,7 @@ class Message(models.Model):
 
 class ShippingDetails(models.Model):
     SHIPPING_METHOD_CHOICES = [
-        ('platform', 'Platform Shipping'),
+        ('swap', 'Swap Shipping Service'),
         ('self', 'Self Exchange'),
     ]
 
@@ -42,13 +44,16 @@ class ShippingDetails(models.Model):
 
 class SwapOrder(models.Model):
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('confirmed', 'Confirmed'),
-        ('shipped', 'Shipped'),
-        ('delivered', 'Delivered'),
-        ('cancelled', 'Cancelled'),
-        ('disputed', 'Disputed'),
-    ]
+    ('pending', 'Pending'),            # Order placed, awaiting confirmation
+    ('confirmed', 'Confirmed'),        # Order confirmed by seller
+    ('processing', 'Processing'),      # Preparing for shipment
+    ('packed', 'Packed'),              # Order has been packed
+    ('shipped', 'Shipped'),            # Order is in transit
+    ('out-for-delivery', 'Out for Delivery'),  # Last-mile delivery in progress
+    ('delivered', 'Delivered'),        # Order successfully delivered
+    ('cancelled', 'Cancelled'),        # Order cancelled before shipment
+]
+
 
     PAYMENT_STATUS_CHOICES = [
         ('unpaid', 'Unpaid'),

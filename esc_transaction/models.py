@@ -30,7 +30,6 @@ class TokenTransaction(models.Model):
     
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES, default="REWARD")
 
-    # ✅ New Fields
     status = models.CharField(max_length=20, choices=[("PENDING", "Pending"), ("CONFIRMED", "Confirmed"), ("FAILED", "Failed")], default="PENDING")
 
     def __str__(self):
@@ -65,28 +64,40 @@ class NFTMintTransaction(models.Model):
         return f"NFT minted to {self.minted_to} - {self.transaction_hash[:10]}"
 
 
-class NFTTransferTransaction(models.Model):
+class NFTTransaction(models.Model):
+    
+    TRANSACTION_TYPES = [
+        ("mint", "MINT"),
+        ("transfer", "Transfer"),
+    ]
+    
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES, default="MINT")
     transaction_hash = models.CharField(max_length=200, unique=True, db_index=True)
     time_stamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    status = models.CharField(max_length=20, choices=[("PENDING", "Pending"), ("CONFIRMED", "Confirmed"), ("FAILED", "Failed")], default="PENDING")
 
     transfered_to = models.ForeignKey(
         "esc_wallet.Wallet", 
         verbose_name=("Receiver"), 
         on_delete=models.CASCADE, 
-        related_name="received_nfts"
+        related_name="received_nfts",
+        null=True
     )
     transfered_from = models.ForeignKey(
         "esc_wallet.Wallet", 
         verbose_name=("Sender"), 
         on_delete=models.CASCADE, 
-        related_name="sent_nfts"
+        related_name="sent_nfts",
+        null = True
     )
-
-    # ✅ New Fields
-    nft_name = models.CharField(max_length=100)  # Name of NFT
-    nft_id = models.CharField(max_length=200, db_index=True)  # Unique NFT Identifier (Mint Address)
-    previous_owner_duration = models.IntegerField(null=True, blank=True)  # Duration the previous owner held the NFT (in days)
-    transfer_reason = models.TextField(null=True, blank=True)  # Reason for the transfer (optional)
+    
+    asset = models.ForeignKey(
+        "esc_nft.NFT", 
+        verbose_name=("NFT"), 
+        on_delete=models.CASCADE, 
+        related_name="ownership_history", 
+        null=True, blank=True
+    )
 
     def __str__(self):
         return f"Transferred {self.nft_name} from {self.transfered_from} to {self.transfered_to} - {self.transaction_hash[:10]}"

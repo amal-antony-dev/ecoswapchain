@@ -1,5 +1,5 @@
 import requests
-from esc_transaction.serializer import NFTMintTransactionSerializer
+from esc_transaction.serializer import NFTTransactionSerializer
 from django.core.exceptions import ValidationError
 import requests
 
@@ -51,15 +51,13 @@ def mint(nft):
             
             data = {
                 "transaction_hash": txData["txHash"],
-                "minted_to": nft.owner.wallet.pk,  # Ensure this is the wallet ID, not object
-                "asset": nft.pk,  # Ensure this is the NFT ID, not object
-                "transaction_type": "MINT",
-                "mint_cost": 20.00,  
-                "mint_status": "CONFIRMED",
+                "transfered_to": nft.owner.wallet.pk,  # Ensure this is the wallet ID, not object
+                "asset": nft.pk,  # Ensure this is the NFT ID, not object 
+                "status": "CONFIRMED",
             }
             
             # Validate and save the transaction
-            tx_serializer = NFTMintTransactionSerializer(data=data)
+            tx_serializer = NFTTransactionSerializer(data=data)
             if tx_serializer.is_valid():
                 tx = tx_serializer.save()
                 return { 

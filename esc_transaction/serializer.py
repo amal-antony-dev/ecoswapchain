@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import TokenTransaction, NFTMintTransaction, NFTTransferTransaction
+from .models import TokenTransaction, NFTMintTransaction, NFTTransaction
 from esc_wallet.models import Wallet
 from esc_nft.models import NFT
 # ✅ Token Transaction Serializer
@@ -50,9 +50,25 @@ class NFTMintTransactionRetrieveSerializer(serializers.ModelSerializer):
 
         
         
-
-# ✅ NFT Transfer Transaction Serializer
-class NFTTransferTransactionSerializer(serializers.ModelSerializer):
+class NFTTransactionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = NFTTransferTransaction
+        model = NFTTransaction
         fields = "__all__"
+
+
+class NFTTransactionRetrieveSerializer(serializers.ModelSerializer):
+    transferedTo = serializers.CharField(source="transfered_to.public_key", read_only=True)
+    transferedFrom = serializers.CharField(source="transfered_from.public_key", read_only=True)
+    transactionHash = serializers.CharField(source="transaction_hash", read_only=True)
+    transactionType = serializers.CharField(source="transaction_type", read_only=True)
+    
+    class Meta:
+        model = NFTTransaction
+        fields = [
+            "transferedTo",
+            "transferedFrom",
+            "transactionHash",
+            "transactionType",
+            "timestamp",
+            "status"
+        ]
