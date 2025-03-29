@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -27,6 +26,8 @@ class OrderCreateView(APIView):
             
             trader = Trader.objects.get(eco_user=request.user)
             nft = NFT.objects.get(id=nft_id)
+            nft.in_processing = True
+            nft.save()
             
  
             order = SwapOrder.objects.create(
@@ -74,6 +75,8 @@ class OrderRetrieveView(APIView):
             print(e)
             return Response({"error" : str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
+        
+        
 class OrderPriceUpdateView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
@@ -91,6 +94,8 @@ class OrderPriceUpdateView(APIView):
         except Exception as e:
             print(e)
             return Response({"error" : str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        
 
 class OrderAddressUpdateView(APIView):
     permission_classes = [IsAuthenticated]

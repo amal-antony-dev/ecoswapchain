@@ -61,6 +61,7 @@ class NFTTransactionRetrieveSerializer(serializers.ModelSerializer):
     transferedFrom = serializers.CharField(source="transfered_from.public_key", read_only=True)
     transactionHash = serializers.CharField(source="transaction_hash", read_only=True)
     transactionType = serializers.CharField(source="transaction_type", read_only=True)
+    timestamp = serializers.DateTimeField(source="time_stamp", read_only=True)
     
     class Meta:
         model = NFTTransaction

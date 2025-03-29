@@ -70,8 +70,7 @@ class ProductSerializer(serializers.ModelSerializer):
     
     features = serializers.JSONField()
     condition = serializers.CharField(allow_null=True, allow_blank=True)
-    additionalMaterials = serializers.JSONField(source='additional_materials', read_only=True)
-    
+
     recycledContent = serializers.FloatField(source='recycled_content', allow_null=True)
     recyclability = serializers.BooleanField()
     carbonFootprint = serializers.FloatField(source='carbon_footprint', allow_null=True)
@@ -97,8 +96,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "additionalImages",
             "features",
             "condition",
-            "additionalMaterials",
-            "recycledContent",
+           "recycledContent",
             "recyclability",
             "carbonFootprint",
             "energyEfficiency",

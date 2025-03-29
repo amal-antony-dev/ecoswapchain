@@ -52,7 +52,7 @@ class Product(models.Model):
     
     features = models.JSONField(null=True, blank=True)
     condition = models.CharField(max_length=255, null=True, blank=True)
-    additional_materials = models.JSONField(null=True, blank=True)
+  
     
     
     recycled_content = models.FloatField(null=True, blank=True, help_text="Percentage of recycled materials used (0-100).")
@@ -60,11 +60,10 @@ class Product(models.Model):
     carbon_footprint = models.FloatField(null=True, blank=True, help_text="Estimated carbon footprint in kg CO2e.")
     energy_efficiency = models.FloatField(null=True, blank=True, help_text="Energy consumption rating (e.g., kWh per year).")
     durability = models.IntegerField(null=True, blank=True, help_text="Expected lifespan in years.")
-    repairability_score = models.FloatField(null=True, blank=True, help_text="Ease of repairability score (0-10).")
+    repairability_score = models.FloatField(null=True, blank=True, help_text="Ease of repairability score (0-100).")
     ethical_sourcing = models.BooleanField(default=False, help_text="Are materials ethically sourced?")
     cruelity_free = models.BooleanField(default=False, help_text="Is the product cruelty-free?")
     plastic_free = models.BooleanField(default=False, help_text="Is the product plastic-free?")
-    
     natural = models.BooleanField(default=False, help_text="Is the product made from natural materials?")
     destructable = models.BooleanField(default=False, help_text="Is the product destructible?")
     hazardous = models.BooleanField(default=False, help_text="Is the product hazardous?")

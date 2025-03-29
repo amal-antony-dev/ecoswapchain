@@ -1,0 +1,1 @@
+defaulf_app_config = 'esc_hub.apps.EscHubConfig'

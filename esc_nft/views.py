@@ -48,7 +48,6 @@ class NFTCreateView(APIView):
             # Validate and save product
             certificate_data = product_data.pop("certifications", [])
             materials_data = product_data.pop("materialsUsed", [])
-            additionalMaterials = product_data.pop("additionalMaterials", [])
             
             
             product_serializer = ProductSerializer(data=product_data)
@@ -57,7 +56,6 @@ class NFTCreateView(APIView):
             
             product = product_serializer.save()
             
-            product.additional_materials = additionalMaterials
             
             for certificate in certificate_data:
                 Certification.objects.create(product=product, **certificate)
@@ -204,6 +202,7 @@ class DeleteNFTObjectView(APIView):
                 return Response({"message" : "Cannot delete a verified Asset"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"message" : "Internal Server Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
             
 class OwnedNFTListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -223,13 +222,29 @@ class OwnedNFTListView(APIView):
             print(e)
             return Response({"message": f"Internal Server Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        
+
+class NFTActivateView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    
+    def put(self, request, nftId):
+        try:
+            nft = NFT.objects.get(pk=nftId)
+            if nft.is_active:
+                return Response({"message" : "NFT already activated"}, status=status.HTTP_400_BAD_REQUEST)
+            nft.is_active = True
+            nft.save()
+            return Response({"message" : "NFT activated successfully"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({"message" : f"Internal Server Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+             
               
 class NFTListView(APIView):
     
     def get(self, request):
         try:
-            nfts = NFT.objects.filter(status=True)
+            nfts = NFT.objects.filter(status=True, is_active=True, in_processing=False)
             nft_serializer = NFTListSerializer(nfts, many=True)
             return Response({"nfts": nft_serializer.data}, status=status.HTTP_200_OK)
         except Exception as e: 

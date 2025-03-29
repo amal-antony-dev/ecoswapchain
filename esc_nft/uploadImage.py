@@ -46,21 +46,34 @@ def pin_metadata_to_ipfs(image_cid, nft):
     url = "https://api.pinata.cloud/pinning/pinJSONToIPFS"
     try:
         metadata = {
-    "name": nft.name,
-    "symbol": nft.symbol,
-    "description": nft.description,
-    "image": f"https://gateway.pinata.cloud/ipfs/{image_cid}",
-    "ownerAddress": nft.owner.eco_user.email,
-    "attributes": [
-        {"trait_type": "Category", "value": nft.product.rootCategory.name if nft.product and nft.product.rootCategory else "Unknown"},
-        {"trait_type": "Subcategory", "value": nft.product.mainCategory.name if nft.product and nft.product.mainCategory else "Unknown"},
-        {"trait_type": "Material", "value": nft.product.material if nft.product else "Not specified"},
-        {"trait_type": "Condition", "value": nft.product.condition if nft.product else "Not specified"},
-        {"trait_type": "Exchangeable", "value": "Yes" if nft.exchange else "No"},
-        {"trait_type": "Owner", "value": nft.owner.eco_user.username if nft.owner and nft.owner.eco_user else "Unknown"},
+        "name": nft.name,
+        "symbol": nft.symbol,
+        "description": nft.description,
+        "image": f"https://gateway.pinata.cloud/ipfs/{image_cid}",
+        "ownerAddress": getattr(nft.owner.eco_user, "email", "Unknown"),
+        "attributes": [
+        {"trait_type": "Category", "value": getattr(nft.product.rootCategory, "name", "Unknown") if nft.product else "Unknown"},
+        {"trait_type": "Subcategory", "value": getattr(nft.product.mainCategory, "name", "Unknown") if nft.product else "Unknown"},
+        {"trait_type": "Condition", "value": getattr(nft.product, "condition", "Not specified")},
+        {"trait_type": "Recycled Content (%)", "value": getattr(nft.product, "recycled_content", 0.0)},
+        {"trait_type": "Recyclability", "value": "Yes" if getattr(nft.product, "recyclability", False) else "No"},
+        {"trait_type": "Carbon Footprint (kg CO2e)", "value": getattr(nft.product, "carbon_footprint", 0.0)},
+        {"trait_type": "Energy Efficiency (kWh/year)", "value": getattr(nft.product, "energy_efficiency", 0.0)},
+        {"trait_type": "Durability (years)", "value": getattr(nft.product, "durability", 0)},
+        {"trait_type": "Repairability Score (0-100)", "value": getattr(nft.product, "repairability_score", 0.0)},
+        {"trait_type": "Ethical Sourcing", "value": "Yes" if getattr(nft.product, "ethical_sourcing", False) else "No"},
+        {"trait_type": "Cruelty-Free", "value": "Yes" if getattr(nft.product, "cruelty_free", False) else "No"},
+        {"trait_type": "Plastic-Free", "value": "Yes" if getattr(nft.product, "plastic_free", False) else "No"},
+        {"trait_type": "Natural Materials", "value": "Yes" if getattr(nft.product, "natural", False) else "No"},
+        {"trait_type": "Destructible", "value": "Yes" if getattr(nft.product, "destructable", False) else "No"},
+        {"trait_type": "Hazardous", "value": "Yes" if getattr(nft.product, "hazardous", False) else "No"},
+        {"trait_type": "Exchangeable", "value": "Yes" if getattr(nft, "exchange", False) else "No"},
+        {"trait_type": "Owner", "value": getattr(nft.owner.wallet, "public_key", "Unknown")},
     ],
     "price": float(nft.price) if nft.price else 0.0
+        
 }
+
 
         headers = {
             "Authorization": f"Bearer {env_config.get('PINATA_JWT')}",

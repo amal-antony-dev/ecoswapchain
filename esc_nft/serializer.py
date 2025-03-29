@@ -40,7 +40,7 @@ class NFTDetailSerializer(serializers.ModelSerializer):
         model = NFT
         fields = ["id", "address", "name", "description", "price", "product",
                   "exchange", "mainImage", "nftType", "leafIndex", 
-                  "treeAddress", "uri", "ownerPublicKey", "createdAt", "status", "traderId"]  # Removed 'timestamp'
+                  "treeAddress", "uri", "ownerPublicKey", "createdAt", "status", "traderId", "ownershipHistory"]  # Removed 'timestamp'
 
     def get_mainImage(self, obj):
         if obj.mainImage:  # Ensure mainImage exists

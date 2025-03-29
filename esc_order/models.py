@@ -37,6 +37,10 @@ class ShippingDetails(models.Model):
     tracking_number = models.CharField(max_length=100, blank=True, null=True)
     shipping_confirmed_by_seller = models.BooleanField(default=False)
     shipping_confirmed_by_buyer = models.BooleanField(default=False)
+    product_verified = models.BooleanField(default=False)
+    source_hub = models.ForeignKey('esc_hub.Hub', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_hub')
+    destination_hub = models.ForeignKey('esc_hub.Hub', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_hub')
+    current_hub = models.ForeignKey('esc_hub.Hub', on_delete=models.SET_NULL, null=True, blank=True, related_name='current_hub')
 
     def __str__(self):
         return f"Shipping Details for Order {self.order.id}"
