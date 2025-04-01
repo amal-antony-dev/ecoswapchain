@@ -4,7 +4,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin/', include('esc_admin.urls')),
+    path('django-admin/', admin.site.urls),
     path('trader/', include('esc_trader.urls')),
     path('verification/', include('esc_verification.urls')),
     path('auth/', include('esc_user.urls')),

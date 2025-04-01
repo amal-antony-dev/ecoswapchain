@@ -13,7 +13,7 @@ import uuid
 import random
 import string
 from datetime import datetime
-
+from esc_hub.models import Hub
 # Create your views here.
 
 class OrderCreateView(APIView):
@@ -126,7 +126,7 @@ class OrderAddressUpdateView(APIView):
 
         return tracking_number
 
-    @transaction.atomic  # Ensure all database operations are atomic
+    @transaction.atomic   
     def put(self, request, order_id):
         try:
             # Fetch the order and check if it exists
@@ -157,20 +157,31 @@ class OrderAddressUpdateView(APIView):
             # Determine if the user is the seller or buyer
             is_seller = order.seller.eco_user == request.user
 
-            # Create shipping details if they don't exist
-    
-
-            # Update shipping details based on the user's role
             if is_seller:
                 order.shipping_details.seller_address = address
                 order.shipping_details.shipping_confirmed_by_seller = True
-                order.shipping_details.tracking_number = self.generate_tracking_number()
-                order.shipping_details.shipping_method = "swap"
+                if not order.shipping_details.shipping_method == "self":
+                    if Hub.objects.filter(
+                        Q(district=order.shipping_details.seller_address.district) &
+                        Q(state=order.shipping_details.seller_address.state)
+                    ).exists():
+                        order.shipping_details.shipping_method = "swap"
+                        order.shipping_details.tracking_number = self.generate_tracking_number()
+                    else:
+                        order.shipping_details.shipping_method = "self"
                 order.status = "confirmed"
                 order.save()
             else:
                 order.shipping_details.buyer_address = address
                 order.shipping_details.shipping_confirmed_by_buyer = True
+                if Hub.objects.filter(
+                    Q(district=order.shipping_details.buyer_address.district) &
+                    Q(state=order.shipping_details.buyer_address.state)
+                ).exists():
+                    order.shipping_details.shipping_method = "swap"
+                else:
+                    order.shipping_details.shipping_method = "self"
+    
 
             order.shipping_details.save()
             if is_seller:

@@ -14,7 +14,15 @@ class EcoUserManager(BaseUserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("role", "admin")
 
+        return self.create_user(email, password, **extra_fields)
+    
+    def create_staffuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", False)
+        extra_fields.setdefault("role", "staff")
+        
         return self.create_user(email, password, **extra_fields)
 
 USER_ROLES = [
