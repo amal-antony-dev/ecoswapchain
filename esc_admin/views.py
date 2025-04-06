@@ -5,10 +5,12 @@ from rest_framework import status
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAdminUser
-from esc_hub.serializers import HubSerializer, HubRetrieveSerializer, RouteSerializer
+from esc_hub.serializers import HubSerializer, HubRetrieveSerializer, RouteSerializer, MSTSerializer
 from esc_user.serializer import EcoUserRetrieveSerializer
 from esc_user.models import EcoUser
 from esc_hub.models import Route
+from esc_hub.utils import build_mst
+from datetime import datetime
 
 
 
@@ -187,3 +189,80 @@ class AdminRouteListView(APIView):
         except Exception as e:
             return Response({"message" : str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class AdminRouteDeleteView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        try:
+            data = request.data["routeIds"]
+            for route_id in data:
+                route = Route.objects.filter(id=route_id).first()
+                if route:
+                    route.delete()
+                    print(f"Route {route_id} deleted successfully")
+                else:
+                    print(f"Route {route_id} not found")
+            return Response({"message": "Routes deleted successfully"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class AdminRouteOptimizeView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+
+    def _log(self, message, level="INFO"):
+        """Structured logging with timestamp and log level"""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"[{timestamp}] [{level}] {message}")
+
+    def get(self, request):
+        """Generate and return MST for all routes"""
+        self._log(f"MST generation initiated by {request.user.email}")
+        
+        try:
+            # Phase 1: MST Construction
+            self._log("Starting MST computation")
+            mst = build_mst()
+            
+            if not mst:
+                self._log("MST construction returned empty result", "ERROR")
+                return Response(
+                    {"status": "error", "message": "MST computation failed"},
+                    status=status.HTTP_422_UNPROCESSABLE_ENTITY
+                )
+            
+            self._log(f"MST generated with {mst.path.count()} connections")
+            
+            # Phase 2: Data Serialization
+            self._log("Serializing MST data")
+            mst_serializer = MSTSerializer(mst)
+            
+            # Phase 3: Response Preparation
+            response_payload = {
+                "status": "success",
+                "generated_at": datetime.now().isoformat(),
+                "connection_count": mst.path.count(),
+                "data": mst_serializer.data
+            }
+            
+            self._log("Request completed successfully")
+            return Response(response_payload, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            self._log(f"MST generation failed: {str(e)}", "ERROR")
+            self._log(f"Exception type: {type(e).__name__}", "DEBUG")
+            
+            error_payload = {
+                "status": "error",
+                "error": type(e).__name__,
+                "message": "Route optimization failed",
+                "resolution": "Contact support with this timestamp",
+                "timestamp": datetime.now().isoformat()
+            }
+            return Response(
+                error_payload,
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

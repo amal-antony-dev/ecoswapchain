@@ -44,6 +44,14 @@ class Certification(models.Model):
     product = models.ForeignKey("Product", on_delete=models.CASCADE, related_name="certifications")
 
 class Product(models.Model):
+
+    CONDITION_CHOICES = [
+        ('new', 'New'),
+        ('like_new', 'Like New'),
+        ('used_good', 'Used - Good'),
+        ('used_fair', 'Used - Fair'),
+        ('for_parts', 'For Parts or Not Working'),
+    ]
     
     rootCategory = models.ForeignKey(RootCategory, on_delete=models.CASCADE, related_name='products', null=True, blank=True)
     mainCategory = models.ForeignKey(MainCategory, on_delete=models.CASCADE, related_name='products', null=True, blank=True)
@@ -51,7 +59,7 @@ class Product(models.Model):
     materials = models.ManyToManyField(Materials, related_name="products")
     
     features = models.JSONField(null=True, blank=True)
-    condition = models.CharField(max_length=255, null=True, blank=True)
+    condition = models.CharField(max_length=20, choices=CONDITION_CHOICES, null=True, blank=True)
   
     
     
@@ -67,6 +75,8 @@ class Product(models.Model):
     natural = models.BooleanField(default=False, help_text="Is the product made from natural materials?")
     destructable = models.BooleanField(default=False, help_text="Is the product destructible?")
     hazardous = models.BooleanField(default=False, help_text="Is the product hazardous?")
+    
+    owned_from = models.DateField(auto_now=True)
     
     
     

@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import EcoUser
+from .serializer import EcoUserRetrieveSerializer
 
 class TokenUpdateView(APIView):
     def post(self, request):
@@ -39,12 +40,8 @@ class CheckUser(APIView):
     def get(self, request):
         print(request.user)
         try:
-            return Response({
-                "first_name": request.user.first_name,
-                "last_name": request.user.last_name,
-                "role": request.user.role,
-                "id" : request.user.id
-            }, status=status.HTTP_200_OK)
+            user_data = EcoUserRetrieveSerializer(request.user).data
+            return Response(user_data, status=status.HTTP_200_OK)
         
         except AuthenticationFailed:
             return Response({

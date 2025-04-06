@@ -29,10 +29,8 @@ class WalletInitializeView(APIView):
             wallet = wallet_serializer.save()
             wallet.refresh_from_db()  
 
-            tx = transferFromTreasury(wallet, 100)
+            tx = transferFromTreasury(wallet, "REWARD", 100)
 
-            wallet.balance = 100
-            wallet.save()
             trader = Trader.objects.get(eco_user=request.user)
             trader.wallet = wallet
             trader.save()
@@ -190,7 +188,7 @@ class AirDropView(APIView):
             
             amount = 0
             if need == "mint":
-                amount = 5000
+                amount = 250000
             
             result, message = self.transfer(publicKey, amount)
             if result:
@@ -203,42 +201,30 @@ class AirDropView(APIView):
         
         
         
-        
-        
-        
+              
         
 class SwapCoinPurchaseView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
     
     def post(self, request, *args, **kwargs):
-            user_wallet_address = request.data.get("wallet_address")  # Get user wallet address
+            user_wallet_address = request.data.get("user_wallet_address")  # Get user wallet address
             amount = request.data.get("amount")  # Amount in USD (e.g., $50)
+            
+            print(request.data)
 
             if not user_wallet_address or not amount:
                 return Response({"error": "Wallet address and amount are required."}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
-                checkout_session = stripe.checkout.Session.create(
-                    payment_method_types=["card"],
-                    line_items=[
-                        {
-                            "price_data": {
-                                "currency": "usd",
-                                "product_data": {
-                                    "name": "SwapCoin Purchase",
-                                },
-                                "unit_amount": int(float(amount) * 100),  # Convert to cents
-                            },
-                            "quantity": 1,
-                        }
-                    ],
-                    metadata={"wallet_address": user_wallet_address},  # Store wallet address for tracking
-                    mode="payment",
-                    success_url="http://localhost:3000/success",
-                    cancel_url="http://localhost:3000/cancel",
-                )
-                return Response({"id": checkout_session.id}, status=status.HTTP_201_CREATED)
+                amount = float(amount)
+                wallet = Wallet.objects.get(public_key=user_wallet_address)
+                if wallet:
+                    tx = transferFromTreasury(wallet, "BUY", amount)
+                    return Response({"transactionData": tx}, status=status.HTTP_200_OK)
+                else:
+                    return Response({"error": "Wallet not found."}, status=status.HTTP_404_NOT_FOUND)
+                
             except Exception as e:
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
             

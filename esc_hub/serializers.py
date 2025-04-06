@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Hub, Route
+from .models import Hub, Route, MST, MSTPath
 from esc_user.models import EcoUser
 
 
@@ -39,33 +39,36 @@ class HubRetrieveSerializer(serializers.ModelSerializer):
         
         
 class RouteSerializer(serializers.ModelSerializer):
-    to = serializers.SerializerMethodField() # Maps "destination" field from Route
-    fromNode = serializers.SerializerMethodField(source="source")  # Maps "source" field from Route
+    to = serializers.SerializerMethodField()  
+    fromNode = serializers.SerializerMethodField()
 
     class Meta:
         model = Route
-        fields = ["to", 'fromNode', 'distance', 'time', 'cost']  # Ensure this is a string, not a tuple
-        
-        
+        fields = ["id", "to", "fromNode", "distance", "time", "cost"]
+
     def get_to(self, obj):
-        lList = []
-        lList.append(obj.destination.latitude)
-        lList.append(obj.destination.longitude)
         return {
-            "position": lList,
+            "position": [obj.destination.latitude, obj.destination.longitude],
             "id": obj.destination.id,
             "title": obj.destination.district,
         }
-        
-    
+
     def get_fromNode(self, obj):
-        lList = []
-        lList.append(obj.source.latitude)
-        lList.append(obj.source.longitude)        
         return {
-            "position": lList,
+            "position": [obj.source.latitude, obj.source.longitude],
             "id": obj.source.id,
             "title": obj.source.district,
         }
-        
+
+
+class MSTPathSerializer(serializers.ModelSerializer):
+    route = RouteSerializer(many=False)
+    class Meta:
+        model = MSTPath
+        fields = ["id", "route", "number"]
     
+class MSTSerializer(serializers.ModelSerializer):
+    path = MSTPathSerializer(many=True)
+    class Meta:
+        model = MST
+        fields = "__all__"

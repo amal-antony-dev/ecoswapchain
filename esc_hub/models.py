@@ -38,3 +38,10 @@ class Route(models.Model):
     def __str__(self):
         return f"{self.source} → {self.destination} ({self.distance:.2f} km)"
 
+
+class MSTPath(models.Model):
+    route = models.ForeignKey(Route, on_delete=models.CASCADE)
+    number = models.IntegerField()
+    
+class MST(models.Model):
+    path = models.ManyToManyField(MSTPath)

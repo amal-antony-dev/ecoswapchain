@@ -108,6 +108,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "natural",
             "destructable",
             "hazardous",
+            "owned_from"
         ]
         extra_kwargs = {
             "rootCategory": {"write_only": True},
