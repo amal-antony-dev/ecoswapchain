@@ -1,0 +1,73 @@
+{
+    "Alappuzha": [
+        "Ernakulam",
+        "Kottayam",
+        "Pathanamthitta",
+        "Kollam"
+    ],
+    "Ernakulam": [
+        "Alappuzha",
+        "Kottayam",
+        "Idukki",
+        "Thrissur"
+    ],
+    "Idukki": [
+        "Ernakulam",
+        "Kottayam",
+        "Pathanamthitta",
+        "Theni (TN)"
+    ],
+    "Kannur": [
+        "Kasargod",
+        "Wayanad",
+        "Kozhikode"
+    ],
+    "Kasaragod": [
+        "Kannur"
+    ],
+    "Kollam": [
+        "Alappuzha",
+        "Pathanamthitta",
+        "Thiruvananthapuram"
+    ],
+    "Kottayam": [
+        "Alappuzha",
+        "Ernakulam",
+        "Idukki",
+        "Pathanamthitta"
+    ],
+    "Kozhikode": [
+        "Kannur",
+        "Wayanad",
+        "Malappuram"
+    ],
+    "Malappuram": [
+        "Kozhikode",
+        "Wayanad",
+        "Palakkad",
+        "Thrissur"
+    ],
+    "Palakkad": [
+        "Malappuram",
+        "Thrissur"
+    ],
+    "Pathanamthitta": [
+        "Alappuzha",
+        "Kollam",
+        "Kottayam",
+        "Idukki"
+    ],
+    "Thiruvananthapuram": [
+        "Kollam"
+    ],
+    "Thrissur": [
+        "Ernakulam",
+        "Malappuram",
+        "Palakkad"
+    ],
+    "Wayanad": [
+        "Kannur",
+        "Kozhikode",
+        "Malappuram"
+    ]
+}

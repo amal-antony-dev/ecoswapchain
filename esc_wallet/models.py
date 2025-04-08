@@ -18,3 +18,4 @@ class Wallet(models.Model):
     def check_key(self, raw_key):
         """Checks if the provided key matches the stored hashed key"""
         return check_password(raw_key, self.key)
+    

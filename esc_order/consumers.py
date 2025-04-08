@@ -70,3 +70,49 @@ class ChatConsumer(AsyncWebsocketConsumer):
         sender = EcoUser.objects.get(id=sender_user_id)
         message = Message.objects.create(order=order, sender=sender, message=message)
         return message
+    
+
+class OrderConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.order_id = self.scope['url_route']['kwargs']['order_id']
+        self.room_group_name = f'order_{self.order_id}'
+
+        # Join the room group
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        # Leave the room group
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+        
+    async def order_update(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'order_confirmation',
+            'shippingMethod': event['shippingMethod'],
+            'sourceHub': event['sourceHub'],
+            'destinationHub': event['destinationHub'],
+        }))
+        
+    async def update_price(self, event):
+        await self.send(text_data=json.dumps({
+            'type' : 'update_price',
+            'updated_price' : event['updated_price']
+        }))
+        
+    async def buyer_confirmation(self, event):
+        await self.send(text_data=json.dumps({
+            'type' : "buyer_confirmation",
+        }))
+        
+    async def seller_confirmation(self, event):
+        await self.send(text_data=json.dumps({
+            'type' : 'seller_confirmation',
+        }))
+    

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import SwapOrder, Message, Address, ShippingDetails
+from esc_hub.serializers import HubRetrieveSerializer
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = serializers.IntegerField(source="sender.id")
@@ -11,7 +12,7 @@ class MessageSerializer(serializers.ModelSerializer):
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
-        fields = ["house_no_or_name", "street", "city", "state", "postal_code", "country", "landmark"]
+        fields = "__all__"
         
 class ShippingDetailsSerializer(serializers.ModelSerializer):
     buyer_address = AddressSerializer()
@@ -20,9 +21,11 @@ class ShippingDetailsSerializer(serializers.ModelSerializer):
     isBuyerConfirmed = serializers.BooleanField(source="shipping_confirmed_by_buyer")
     shippingMethod = serializers.CharField(source="shipping_method")
     trackingNumber = serializers.CharField(source="tracking_number")
+    sourceHub = HubRetrieveSerializer(source="source_hub")
+    destinationHub = HubRetrieveSerializer(source="destination_hub")
     class Meta:
         model = ShippingDetails
-        fields = ["buyer_address", "seller_address", "isSellerConfirmed", "isBuyerConfirmed", "shippingMethod", "trackingNumber"]
+        fields = ["buyer_address", "seller_address", "isSellerConfirmed", "isBuyerConfirmed", "shippingMethod", "trackingNumber", "sourceHub", "destinationHub"]
 
 class OrderListSerializer(serializers.ModelSerializer):
     ownerId = serializers.IntegerField(source="item.owner.eco_user.id") 
@@ -58,7 +61,6 @@ class OrderSerializer(serializers.ModelSerializer):
     paymentStatus = serializers.CharField(source="payment_status")
     createdAt = serializers.DateTimeField(source="created_at")
     updatedAt = serializers.DateTimeField(source="updated_at")
-    price = serializers.DecimalField(source="item.price", max_digits=10, decimal_places=2)
     shippingDetails = ShippingDetailsSerializer(source="shipping_details")
     class Meta:
         model = SwapOrder

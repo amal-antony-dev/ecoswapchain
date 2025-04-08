@@ -18,7 +18,6 @@ class TokenTransactionCreationSerializer(serializers.ModelSerializer):
         
         
         
-
 # ✅ NFT Mint Transaction Serializer
 class NFTMintTransactionSerializer(serializers.ModelSerializer):
     class Meta:

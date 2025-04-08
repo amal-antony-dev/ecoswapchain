@@ -23,14 +23,14 @@ class TokenTransaction(models.Model):
 
     TRANSACTION_TYPES = [
         ("BUY", "Buy"),
-        ("SELL", "Sell"),
+        ("ESCROW", "Escrow"),
         ("REWARD", "Reward"),
         ("FEE", "Fee")
     ]
     
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES, default="REWARD")
 
-    status = models.CharField(max_length=20, choices=[("PENDING", "Pending"), ("CONFIRMED", "Confirmed"), ("FAILED", "Failed")], default="PENDING")
+    status = models.CharField(max_length=20, choices=[("PENDING", "Pending"), ("HOLD", "Hold"), ("CONFIRMED", "Confirmed"), ("FAILED", "Failed")], default="PENDING")
 
     def __str__(self):
         return f"{self.transaction_type} - {self.amount} - {self.transaction_hash[:10]}"
@@ -101,3 +101,4 @@ class NFTTransaction(models.Model):
 
     def __str__(self):
         return f"Transferred {self.nft_name} from {self.transfered_from} to {self.transfered_to} - {self.transaction_hash[:10]}"
+

@@ -4,7 +4,9 @@ from .models import Trader
 from .serializer import TraderRegistrationSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
-from esc_user.serializer import EcoUserRetrieveSerializer
+from .serializer import TraderRetrieveSerializer
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 class TraderRegistrationView(generics.CreateAPIView):
     """
@@ -99,3 +101,17 @@ class TraderLoginView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
+class TraderRetrieveView(APIView):
+    """
+    View for retrieving a trader's details
+    """
+    permision_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    
+    def get(self, request):
+        try:
+            trader = TraderRetrieveSerializer(Trader.objects.filter(eco_user=request.user).first()).data
+            return Response({"trader" : trader}, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({"error" : str(e)}, status=status.HTTP_400_BAD_REQUEST)

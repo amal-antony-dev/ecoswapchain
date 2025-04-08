@@ -8,4 +8,5 @@ class Trader(models.Model):
     total_purchases = models.IntegerField(default=0)
     date_joined = models.DateTimeField(auto_now_add=True)
     verified = models.BooleanField(default=False)
+    owned_assets = models.IntegerField(default=0)
 

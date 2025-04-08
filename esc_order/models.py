@@ -10,9 +10,15 @@ class Address(models.Model):
     postal_code = models.CharField(max_length=20)
     country = models.CharField(max_length=100)
     landmark = models.CharField(max_length=100)
+    district_number = models.IntegerField(null=True, blank=True)
+    district = models.CharField(max_length=100, null=True, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    default = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.street}, {self.city}, {self.country}"
+    
     
     
 class Message(models.Model):
@@ -42,8 +48,6 @@ class ShippingDetails(models.Model):
     destination_hub = models.ForeignKey('esc_hub.Hub', on_delete=models.SET_NULL, null=True, blank=True, related_name='target_hub')
     current_hub = models.ForeignKey('esc_hub.Hub', on_delete=models.SET_NULL, null=True, blank=True, related_name='current_hub')
 
-    def __str__(self):
-        return f"Shipping Details for Order {self.order.id}"
 
 
 class SwapOrder(models.Model):
@@ -61,7 +65,7 @@ class SwapOrder(models.Model):
 
     PAYMENT_STATUS_CHOICES = [
         ('unpaid', 'Unpaid'),
-        ('partial', 'Partial Payment'),
+        ('escrow', 'Escrow'),
         ('paid', 'Paid'),
         ('refunded', 'Refunded'),
     ]
@@ -72,8 +76,10 @@ class SwapOrder(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid')
     created_at = models.DateTimeField(auto_now_add=True)
+    price = models.DecimalField(max_digits=5, decimal_places=2, null=True)
     updated_at = models.DateTimeField(auto_now=True)
+    escrow_transaction = models.ForeignKey('esc_transaction.TokenTransaction', on_delete=models.SET_NULL, null=True, blank=True, related_name='order')
     shipping_details = models.OneToOneField(ShippingDetails, on_delete=models.SET_NULL, null=True, blank=True, related_name='order')
 
     def __str__(self):
-        return f"Order {self.id} - {self.product.name} ({self.status})"
+        return f"Order {self.id} - ({self.status})"

@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 from esc_trader.models import Trader
-from .models import SwapOrder, ShippingDetails
+from .models import SwapOrder, ShippingDetails, Address
 from .serializer import OrderSerializer, MessageSerializer, OrderListSerializer, AddressSerializer
 from esc_nft.models import NFT
 from django.db.models import Q
@@ -14,7 +14,57 @@ import random
 import string
 from datetime import datetime
 from esc_hub.models import Hub
+from .signals import order_creation_signal, map_number_signal
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+from esc_transaction.serializer import TokenTransactionCreationSerializer
 # Create your views here.
+
+channel_layer = get_channel_layer()
+
+class AddressCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    
+    def post(self, request):
+        try:
+            print(request.data)
+            address = request.data.get("address")
+            trader = Trader.objects.get(eco_user=request.user)
+            address_serializer = AddressSerializer(data=address)
+            if address_serializer.is_valid():
+                address = address_serializer.save()
+                address.trader = trader
+                address.save()
+                map_number_signal.send(sender = self, address = address)
+                return Response(data={"address" : address_serializer.data}, status=status.HTTP_201_CREATED)
+            else:
+                return Response(data={"message": address_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        except Trader.DoesNotExist:
+            return Response(data={"message": "Trader does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(e)
+            return Response(data={"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        
+class AddressUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    
+    def put(self, request, address_id):
+        try:
+            address = Address.objects.get(id=address_id)
+            address_serializer = AddressSerializer(address, data=request.data)
+            if address_serializer.is_valid():
+                address_serializer.save()
+                return Response(data={"message": "Address Updated Successfully"}, status=status.HTTP_200_OK)
+            else:
+                return Response(data={"message": address_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        except Trader.DoesNotExist:
+            return Response(data={"message": "Trader does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(data={"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class OrderCreateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -29,15 +79,17 @@ class OrderCreateView(APIView):
             nft.in_processing = True
             nft.save()
             
- 
             order = SwapOrder.objects.create(
                 item=nft,
                 buyer=trader,
-                seller=nft.owner
+                seller=nft.owner,
+                price=nft.price
             )
             
-   
             shipping_details = ShippingDetails.objects.create()
+            shipping_details.buyer_address = Address.objects.filter(trader=trader, default=True).first()
+            shipping_details.seller_address = Address.objects.filter(trader=nft.owner, default=True).first()
+            shipping_details.save()
             order.shipping_details = shipping_details
             order.save()
             
@@ -76,7 +128,6 @@ class OrderRetrieveView(APIView):
             return Response({"error" : str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
         
-        
 class OrderPriceUpdateView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
@@ -87,117 +138,104 @@ class OrderPriceUpdateView(APIView):
             if order.seller.eco_user != request.user:
                 return Response({"error" : "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
             
-            order.item.price = request.data.get("price")
-            order.item.save()
+            order.price = request.data.get("price")
             order.save()
+            async_to_sync(channel_layer.group_send)(
+                f'order_{order.id}',
+                {
+                    'type' : 'update_price',
+                    'updated_price' : order.price
+                }
+            )
             return Response({"message" : "Order price updated successfully"}, status=status.HTTP_200_OK)
         except Exception as e:
             print(e)
             return Response({"error" : str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
         
-
-class OrderAddressUpdateView(APIView):
+class OrderConfirmView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
-    
-    def generate_tracking_number(self, prefix="TR"):
-        """
-        Generates a unique tracking number.
 
-        Args:
-            prefix (str): A prefix for the tracking number (e.g., "TR" for "Tracking").
-
-        Returns:
-            str: A unique tracking number in the format: <PREFIX>-<TIMESTAMP>-<RANDOM_CHARS>-<UUID_SHORT>
-                Example: "TR-20231025-ABC7X-9B4F"
-        """
-        # Get the current timestamp in YYYYMMDD format
-        timestamp = datetime.now().strftime("%Y%m%d")
-
-        # Generate 4 random uppercase letters
-        random_chars = ''.join(random.choices(string.ascii_uppercase, k=4))
-
-        # Generate a short UUID (first 8 characters of a UUID4)
-        short_uuid = str(uuid.uuid4()).replace("-", "")[:8]
-
-        # Combine all parts into a tracking number
-        tracking_number = f"{prefix}-{timestamp}-{random_chars}-{short_uuid}"
-
-        return tracking_number
-
-    @transaction.atomic   
     def put(self, request, order_id):
+        if not order_id:
+            return Response({"error": "orderId is required"}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            # Fetch the order and check if it exists
-            order = SwapOrder.objects.filter(id=order_id).first()
-            if not order:
-                return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+            order = SwapOrder.objects.get(id=order_id)
+        except SwapOrder.DoesNotExist:
+            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            # Validate and save the address
-            address_data = request.data.get("address")
-            if not address_data:
-                return Response({"error": "Address data is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-            address_serializer = AddressSerializer(data=address_data)
-            if not address_serializer.is_valid():
-                return Response({"error": address_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
-            # Fetch the trader associated with the user
-            try:
-                trader = Trader.objects.get(eco_user=request.user)
-            except Trader.DoesNotExist:
-                return Response({"error": "Trader not found for the current user"}, status=status.HTTP_404_NOT_FOUND)
-
-            # Save the address with the trader
-            address = address_serializer.save()
-            address.trader = trader
-            address.save()
-
-            # Determine if the user is the seller or buyer
-            is_seller = order.seller.eco_user == request.user
-
-            if is_seller:
-                order.shipping_details.seller_address = address
-                order.shipping_details.shipping_confirmed_by_seller = True
-                if not order.shipping_details.shipping_method == "self":
-                    if Hub.objects.filter(
-                        Q(district=order.shipping_details.seller_address.district) &
-                        Q(state=order.shipping_details.seller_address.state)
-                    ).exists():
-                        order.shipping_details.shipping_method = "swap"
-                        order.shipping_details.tracking_number = self.generate_tracking_number()
-                    else:
-                        order.shipping_details.shipping_method = "self"
-                order.status = "confirmed"
-                order.save()
-            else:
-                order.shipping_details.buyer_address = address
+        try:
+            if order.buyer.eco_user == request.user:
+                # Buyer confirmation
                 order.shipping_details.shipping_confirmed_by_buyer = True
-                if Hub.objects.filter(
-                    Q(district=order.shipping_details.buyer_address.district) &
-                    Q(state=order.shipping_details.buyer_address.state)
-                ).exists():
-                    order.shipping_details.shipping_method = "swap"
-                else:
-                    order.shipping_details.shipping_method = "self"
-    
+                order.shipping_details.save()
+                async_to_sync(channel_layer.group_send)(
+                    f'order_{order.id}',
+                    {
+                        'type' : 'buyer_confirmation'
+                    }
+                )
+                return Response({"message": "Buyer confirmed shipping details successfully"}, status=status.HTTP_200_OK)
+            elif order.seller.eco_user == request.user:
+                # Seller confirmation
+                order.shipping_details.shipping_confirmed_by_seller = True
+                order.status = "confirmed"
+                order.shipping_details.save()
+                order.save()
+                async_to_sync(channel_layer.group_send)(
+                    f'order_{order.id}',
+                    {
+                        'type' : 'buyer_confirmation'
+                    }
+                )
+                order_creation_signal.send(sender=self, order=order)
 
-            order.shipping_details.save()
-            if is_seller:
-                return Response({"trackingNumber" : order.shipping_details.tracking_number, 
-                                 "shippingMethod" : order.shipping_details.shipping_method
-                                 }, status=status.HTTP_201_CREATED)
-            else:   
-                return Response({"message": "Address updated successfully"}, status=status.HTTP_200_OK)
+                return Response({"message": "Seller confirmed shipping details successfully"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"message" : "You are not authorized to perform this action"}, status=status.HTTP_401_UNAUTHORIZED)
 
         except Exception as e:
-            # Rollback the transaction in case of an error
-            transaction.set_rollback(True)
-            # Log the error for debugging purposes
-            print(f"Error: {e}")
-            return Response({"error": "An error occurred while updating the address"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
+            print(e)
+            return Response({"error": f"Failed to confirm shipping: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class InitEscrowView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def post(self, request):
+        try:
+            tx = request.data.get("tx")
+            amount = request.data.get("amount")
+            trader_id = request.data.get("traderId")
+            order_id = request.data.get("orderId")
+            trader = Trader.objects.get(id=trader_id)
+            order = SwapOrder.objects.get(id=order_id)
+            transactionData = {
+                    "transaction_hash": tx,
+                    "amount": amount,
+                    "transfered_from": Trader.objects.get(eco_user=request.user).wallet.pk,
+                    "transfered_to": trader.wallet.pk,
+                    "transaction_type": "ESCROW",
+                    "status": "HOLD"
+                }
+
+            transaction_serializer = TokenTransactionCreationSerializer(data=transactionData)
+            if transaction_serializer.is_valid():
+                transaction = transaction_serializer.save()
+                order.escrow_transaction = transaction
+                order.payment_status = "escrow"
+                order.save()
+            else:
+                print(transaction_serializer.errors)
+                raise ValidationError(transaction_serializer.errors)
+        except exception as e:
+            return Response({"error": "Missing transaction hash"}, status=status.HTTP_400_BAD_REQUEST)
+
                 
 class MessageRetrieveView(APIView):
     permission_classes = [IsAuthenticated]

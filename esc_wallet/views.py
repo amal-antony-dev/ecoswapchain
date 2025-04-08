@@ -14,8 +14,6 @@ import requests
 
 # Load environment variables
 
-
-
 class WalletInitializeView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
@@ -112,7 +110,6 @@ class NFTMintFeeTransferView(APIView):
 
         except Exception as e:
             return Response({"error": "An unexpected error occurred.", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 class AirDropView(APIView):
     permission_classes = [IsAuthenticated]
