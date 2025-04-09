@@ -94,7 +94,7 @@ class OrderConsumer(AsyncWebsocketConsumer):
         
     async def order_update(self, event):
         await self.send(text_data=json.dumps({
-            'type': 'order_confirmation',
+            'type': 'order_update',
             'shippingMethod': event['shippingMethod'],
             'sourceHub': event['sourceHub'],
             'destinationHub': event['destinationHub'],
@@ -116,3 +116,11 @@ class OrderConsumer(AsyncWebsocketConsumer):
             'type' : 'seller_confirmation',
         }))
     
+    async def ownership_transfer(self, event):
+        await self.send(text_data=json.dumps({
+            'type' : 'ownership_transfer',
+            'transactionHash' : event['transactionHash'],
+            'timestamp' : event['timestamp'],
+            'status' : event['status'],
+            'payment_status' : event['payment_status'],
+        }))

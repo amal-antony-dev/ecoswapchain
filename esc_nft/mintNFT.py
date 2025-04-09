@@ -78,3 +78,25 @@ def mint(nft):
     except Exception as e:
         print(f"❌ Error: {e}")
         return None
+
+
+def transfer(order):
+    """Transfers an NFT to a new address."""
+    try:
+        response = requests.post(
+            f"http://localhost:3000/nft/transfer",  # Replace with actual API URL
+            json={
+                "mintAddress": order.item.address,
+                "recipientAddress": order.buyer.wallet.public_key
+            }
+        )
+        
+        tx = response.json()
+        print(tx)
+        return tx["tx"]
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Request error: {e}")
+        return None
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        return None

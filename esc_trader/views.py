@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from .serializer import TraderRetrieveSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from esc_user.serializer import EcoUserRetrieveSerializer
 
 class TraderRegistrationView(generics.CreateAPIView):
     """

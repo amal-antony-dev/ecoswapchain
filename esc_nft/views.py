@@ -6,15 +6,18 @@ from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
 import json
 from .models import NFT
-from esc_product.models import Product, ProductImage, RootCategory, MainCategory
+from esc_product.models import Product, ProductImage, RootCategory, MainCategory, Materials, Certification
 from .serializer import NFTSerializer, ProductSerializer, NFTListSerializer, NFTDetailSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 from esc_trader.models import Trader
 from .uploadImage import get_uri
-from .mintNFT import mint
-from esc_transaction.serializer import TokenTransactionCreationSerializer
-from esc_product.models import Materials, Certification
+from .mintNFT import mint, transfer
+from esc_transaction.serializer import TokenTransactionCreationSerializer, NFTTransactionSerializer
+from esc_wallet.models import Wallet
+from esc_order.models import SwapOrder
+from .signals import nft_transfer_signal
+
 
 class NFTCreateView(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -264,3 +267,47 @@ class NFTRetrieveView(APIView):
         except Exception as e:
             print(e)
             return Response({"message": "Internal Server Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
+class NFTTransferView(APIView):
+    """
+    View for transferring an NFT
+    """
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    
+    def post(self, request):
+        try:
+            orderId = request.data.get("orderId")
+            
+            order = SwapOrder.objects.get(id=orderId)
+            
+            tx = transfer(order)
+            
+            if tx is None:
+                return Response({"message": "Transfer failed"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            data = {
+                "transaction_hash": tx,
+                "transfered_to": order.buyer.wallet.pk,  # Ensure this is the wallet ID, not object
+                "transfered_from": order.seller.wallet.pk,  # Ensure this is the wallet ID, not object 
+                "asset": order.item.pk,  # Ensure this is the NFT ID, not object 
+                "status": "CONFIRMED",
+                "transaction_type": "transfer"
+            }
+            
+            tx_serializer = NFTTransactionSerializer(data=data)
+            
+            nft_transfer_signal.send(sender = self, order = order)
+            
+            if tx_serializer.is_valid():
+                transaction = tx_serializer.save()
+                order.ownership_transfer_transaction = transaction
+                order.save()
+                return Response({"message" : "Transaction created successfully", "transactionData" : tx_serializer.data}, status=status.HTTP_201_CREATED)
+            else:
+                print("❌ Serializer validation failed:", tx_serializer.errors)
+                return None
+        except Exception as e:
+            print(e)
+            

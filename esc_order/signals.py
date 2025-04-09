@@ -159,7 +159,7 @@ def order_created(sender, order, **kwargs):
         async_to_sync(channel_layer.group_send)(
             f"order_{order.id}", 
             {
-                "type": "order_confirmation",
+                "type": "order_update",
                 "shippingMethod": order.shipping_details.shipping_method,
                 "sourceHub": sourceHub,
                 "destinationHub": destinationHub,
@@ -275,7 +275,7 @@ def order_created(sender, order, **kwargs):
     async_to_sync(channel_layer.group_send)(
         f"order_{order.id}", 
         {
-            "type": "order_confirmation",
+            "type": "order_update",
             "shippingMethod": order.shipping_details.shipping_method,
             "sourceHub": sourceHub,
             "destinationHub": destinationHub,

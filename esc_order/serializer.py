@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import SwapOrder, Message, Address, ShippingDetails
 from esc_hub.serializers import HubRetrieveSerializer
+from esc_transaction.serializer import TokenTransactionSerializer, NFTTransactionRetrieveSerializer
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = serializers.IntegerField(source="sender.id")
@@ -62,6 +63,8 @@ class OrderSerializer(serializers.ModelSerializer):
     createdAt = serializers.DateTimeField(source="created_at")
     updatedAt = serializers.DateTimeField(source="updated_at")
     shippingDetails = ShippingDetailsSerializer(source="shipping_details")
+    escrowTransaction = TokenTransactionSerializer(source="escrow_transaction")
+    ownershipTransferTransaction = NFTTransactionRetrieveSerializer(source="ownership_transfer_transaction")
     class Meta:
         model = SwapOrder
         fields = [
@@ -81,5 +84,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "createdAt",
             "updatedAt",
             "price",
-            "shippingDetails"
+            "shippingDetails",
+            "escrowTransaction",
+            "ownershipTransferTransaction"
         ]

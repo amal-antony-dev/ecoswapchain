@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import NFTCreateView, NFTMintView, DeleteNFTObjectView, OwnedNFTListView, NFTListView, NFTRetrieveView, NFTActivateView
+from .views import NFTCreateView, NFTMintView, DeleteNFTObjectView, OwnedNFTListView, NFTListView, NFTRetrieveView, NFTActivateView, NFTTransferView
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -12,6 +12,8 @@ urlpatterns = [
     path('list/all/', NFTListView.as_view(), name='nft-list-all'),
     path('retrieve/<int:nftId>/', NFTRetrieveView.as_view(), name='nft-retrieve'),
     path('activate/<int:nftId>/', NFTActivateView.as_view(), name='nft-activate'),
+    path('transfer/', NFTTransferView.as_view(), name='nft-transfer'),
+    
 
 ]
 

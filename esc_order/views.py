@@ -18,6 +18,7 @@ from .signals import order_creation_signal, map_number_signal
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from esc_transaction.serializer import TokenTransactionCreationSerializer
+from rest_framework.exceptions import ValidationError
 # Create your views here.
 
 channel_layer = get_channel_layer()
@@ -211,18 +212,25 @@ class InitEscrowView(APIView):
         try:
             tx = request.data.get("tx")
             amount = request.data.get("amount")
-            trader_id = request.data.get("traderId")
             order_id = request.data.get("orderId")
-            trader = Trader.objects.get(id=trader_id)
+            
+            print(request.data)
+
+            # Validate required fields
+            if not tx or not amount or not order_id:
+                return Response({"error": "Missing required fields."}, status=status.HTTP_400_BAD_REQUEST)
+
             order = SwapOrder.objects.get(id=order_id)
+ 
+
             transactionData = {
-                    "transaction_hash": tx,
-                    "amount": amount,
-                    "transfered_from": Trader.objects.get(eco_user=request.user).wallet.pk,
-                    "transfered_to": trader.wallet.pk,
-                    "transaction_type": "ESCROW",
-                    "status": "HOLD"
-                }
+                "transaction_hash": tx,
+                "amount": int(amount),
+                "transfered_from": order.buyer.wallet.pk,
+                "transfered_to": order.seller.wallet.pk,
+                "transaction_type": "ESCROW",
+                "status": "HOLD"
+            }
 
             transaction_serializer = TokenTransactionCreationSerializer(data=transactionData)
             if transaction_serializer.is_valid():
@@ -230,11 +238,20 @@ class InitEscrowView(APIView):
                 order.escrow_transaction = transaction
                 order.payment_status = "escrow"
                 order.save()
+
+                return Response({
+                    "message": "Escrow transaction initialized successfully.",
+                    "transactionData": transaction_serializer.data
+                }, status=status.HTTP_201_CREATED)
             else:
-                print(transaction_serializer.errors)
-                raise ValidationError(transaction_serializer.errors)
-        except exception as e:
-            return Response({"error": "Missing transaction hash"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({
+                    "message": transaction_serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        except ValidationError as ve:
+            return Response({"message": "Validation failed.", "details": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"message": "An unexpected error occurred.", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
                 
 class MessageRetrieveView(APIView):

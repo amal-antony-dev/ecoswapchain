@@ -76,8 +76,9 @@ class SwapOrder(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid')
     created_at = models.DateTimeField(auto_now_add=True)
-    price = models.DecimalField(max_digits=5, decimal_places=2, null=True)
+    price = models.DecimalField(max_digits=15, decimal_places=5, null=True)
     updated_at = models.DateTimeField(auto_now=True)
+    ownership_transfer_transaction = models.ForeignKey('esc_transaction.NFTTransaction', on_delete=models.SET_NULL, null=True, blank=True, related_name='order')
     escrow_transaction = models.ForeignKey('esc_transaction.TokenTransaction', on_delete=models.SET_NULL, null=True, blank=True, related_name='order')
     shipping_details = models.OneToOneField(ShippingDetails, on_delete=models.SET_NULL, null=True, blank=True, related_name='order')
 

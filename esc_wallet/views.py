@@ -140,6 +140,7 @@ class AirDropView(APIView):
                 "publicKey": pubKey,
                 "amount": amount
             }
+            
 
             # Make the HTTP POST request
             response = requests.post("http://localhost:3000/airdrop/transfer", json=data)
@@ -215,6 +216,7 @@ class SwapCoinPurchaseView(APIView):
 
             try:
                 amount = float(amount)
+                print(amount)
                 wallet = Wallet.objects.get(public_key=user_wallet_address)
                 if wallet:
                     tx = transferFromTreasury(wallet, "BUY", amount)

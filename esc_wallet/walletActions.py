@@ -1,7 +1,6 @@
 import requests
 from requests.exceptions import RequestException
 from rest_framework.exceptions import ValidationError
-from .models import Wallet
 from esc_transaction.serializer import TokenTransactionCreationSerializer
 from decimal import Decimal
 
