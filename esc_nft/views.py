@@ -120,7 +120,7 @@ class NFTCreateView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class NFTMintView(APIView):
+class NFTURIView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
     
@@ -128,8 +128,6 @@ class NFTMintView(APIView):
         try:
             nft_id = request.data.get("id")
             txHash = request.data.get("txHash")
-            
-            print(request.data)
             
             if not txHash:
                 return Response({"message": "Missing Transaction Signature"}, status=status.HTTP_400_BAD_REQUEST)
@@ -139,14 +137,11 @@ class NFTMintView(APIView):
             
             nft = None
             
-            # Check if NFT exists and belongs to the authenticated user
-            print(nft_id)
             try:
                 trader = Trader.objects.get(eco_user=request.user)
-                print(trader.id)
                 nft = NFT.objects.get(id=nft_id, owner=trader)
-                print(nft.id)
-                print(nft.owner.wallet.pk)
+                nft.owner.wallet.balance = nft.owner.wallet.balance - 20
+                nft.owner.wallet.save()
                 transactionData = {
                     "transaction_hash": txHash,
                     "amount": 20,
@@ -170,25 +165,60 @@ class NFTMintView(APIView):
                 uri = get_uri(nft)
                 nft.uri = uri["uri"]
                 nft.save()
+                nft.refresh_from_db()
+                metadata = {
+                "name": nft.name,
+                "symbol": nft.symbol,
+                "uri": nft.uri
+                }
+                return Response({"metadata": metadata}, status=status.HTTP_200_OK)
             except Exception as e:
                 return Response({"message": f"Error generating URI: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            # Mint the NFT
-            try:
-                tx = mint(nft)
-                if tx is not None:
-                    print("NFT data: ", tx)
-                    return Response({"tx" : {
-                    "txHash" : tx["txHash"], "mintAddress" : tx["mintAddress"]}}, status=status.HTTP_200_OK)
-            except Exception as e:
-                print(str(e))
-                return Response({"message": f"Error minting NFT: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
         except Exception as e:
             print(str(e))
             return Response({"message": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+class NFTMintView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    
+    def post(self, request):
+        try:
+            nft_id = request.data.get("id")
+            txHash = request.data.get("txHash")
+            address = request.data.get("address")
+            
+            if not txHash:
+                return Response({"message": "Missing Transaction Signature"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            nft = NFT.objects.get(pk=nft_id)
+            
+            nft.address = address
+            nft.nft_type = "NFT"
+            nft.status = True
+            nft.save()
+            
+            data = {
+                "transaction_hash": txHash,
+                "transfered_to": nft.owner.wallet.pk,  # Ensure this is the wallet ID, not object
+                "asset": nft.pk,  # Ensure this is the NFT ID, not object 
+                "status": "CONFIRMED",
+            }
+            
+            tx_serializer = NFTTransactionSerializer(data=data)
+            if tx_serializer.is_valid():
+                tx = tx_serializer.save()
+                return Response({"message" : "Transaction added successfully"}, status=status.HTTP_200_OK)
+            else:
+                print("❌ Serializer validation failed:", tx_serializer.errors)
+                return 
+                return Response({"message" : "Transaction not added"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(e)
+            return Response({"message" : f"Internal Server Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            
+            
         
         
 class DeleteNFTObjectView(APIView):
@@ -279,35 +309,19 @@ class NFTTransferView(APIView):
     def post(self, request):
         try:
             orderId = request.data.get("orderId")
+            tx_hash = request.data.get("txHash")
             
-            order = SwapOrder.objects.get(id=orderId)
+            if not tx_hash:
+                return Response({"message": "Missing Transaction Signature"}, status=status.HTTP_400_BAD_REQUEST)
             
-            tx = transfer(order)
+            if not mint_address:
+                return Response({"message": "Missing Mint Address"}, status=status.HTTP_400_BAD_REQUEST)
             
-            if tx is None:
-                return Response({"message": "Transfer failed"}, status=status.HTTP_400_BAD_REQUEST)
-            
-            data = {
-                "transaction_hash": tx,
-                "transfered_to": order.buyer.wallet.pk,  # Ensure this is the wallet ID, not object
-                "transfered_from": order.seller.wallet.pk,  # Ensure this is the wallet ID, not object 
-                "asset": order.item.pk,  # Ensure this is the NFT ID, not object 
-                "status": "CONFIRMED",
-                "transaction_type": "transfer"
-            }
-            
-            tx_serializer = NFTTransactionSerializer(data=data)
-            
-            nft_transfer_signal.send(sender = self, order = order)
-            
-            if tx_serializer.is_valid():
-                transaction = tx_serializer.save()
-                order.ownership_transfer_transaction = transaction
-                order.save()
-                return Response({"message" : "Transaction created successfully", "transactionData" : tx_serializer.data}, status=status.HTTP_201_CREATED)
-            else:
-                print("❌ Serializer validation failed:", tx_serializer.errors)
-                return None
+            order = SwapOrder.objects.filter(id=orderId).first()           
+            nft_transfer_signal.send(sender=self, orderId=orderId, tx_hash=tx_hash)
+            order.save()
+            return Response({"message": "Transfer initiated and will be processed asynchronously"}, status=status.HTTP_200_OK)
         except Exception as e:
             print(e)
+            return Response({"message" : str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             

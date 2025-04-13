@@ -11,6 +11,7 @@ from .models import Wallet
 from esc_wallet.walletActions import transferFromTreasury 
 from decouple import RepositoryEnv, Config
 import requests
+from .tasks import initiateTransfer
 
 # Load environment variables
 
@@ -27,7 +28,7 @@ class WalletInitializeView(APIView):
             wallet = wallet_serializer.save()
             wallet.refresh_from_db()  
 
-            tx = transferFromTreasury(wallet, "REWARD", 100)
+            initiateTransfer.delay(wallet.pk, "REWARD", 100)
 
             trader = Trader.objects.get(eco_user=request.user)
             trader.wallet = wallet
@@ -36,9 +37,7 @@ class WalletInitializeView(APIView):
         else:
             return Response({"message": "Error creating wallet", "errors": wallet_serializer.errors},
                             status=status.HTTP_400_BAD_REQUEST)
-
-
-        return Response({"transactionData": tx}, status=status.HTTP_200_OK)
+        return Response({'message' : "Transaction initiated successfully"}, status=status.HTTP_200_OK)
 
 
 class WalletRetrieveView(generics.RetrieveAPIView):
@@ -215,12 +214,10 @@ class SwapCoinPurchaseView(APIView):
                 return Response({"error": "Wallet address and amount are required."}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
-                amount = float(amount)
-                print(amount)
                 wallet = Wallet.objects.get(public_key=user_wallet_address)
                 if wallet:
-                    tx = transferFromTreasury(wallet, "BUY", amount)
-                    return Response({"transactionData": tx}, status=status.HTTP_200_OK)
+                    initiateTransfer.delay(wallet.pk, "BUY", amount)
+                    return Response({}, status=status.HTTP_200_OK)
                 else:
                     return Response({"error": "Wallet not found."}, status=status.HTTP_404_NOT_FOUND)
                 

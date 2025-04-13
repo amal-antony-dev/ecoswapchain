@@ -99,6 +99,4 @@ class NFTTransaction(models.Model):
         null=True, blank=True
     )
 
-    def __str__(self):
-        return f"Transferred {self.nft_name} from {self.transfered_from} to {self.transfered_to} - {self.transaction_hash[:10]}"
 

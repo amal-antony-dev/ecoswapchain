@@ -124,3 +124,16 @@ class OrderConsumer(AsyncWebsocketConsumer):
             'status' : event['status'],
             'payment_status' : event['payment_status'],
         }))
+        
+    async def nft_transfer(self, event):
+        await self.send(text_data=json.dumps({
+            'type' : 'nft_transfer',
+            'transactionData' : event['transactionData'],
+            'ownershipTransferStatus' : event['ownershipTransferStatus']
+        }))
+    
+    async def initiate_escrow(self, event):
+        await self.send(text_data = json.dumps({
+            'type' : 'initiate_escrow',
+            'transactinData' : event['transactionData']
+        })) 

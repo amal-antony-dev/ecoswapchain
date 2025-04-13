@@ -67,14 +67,24 @@ class SwapOrder(models.Model):
         ('unpaid', 'Unpaid'),
         ('escrow', 'Escrow'),
         ('paid', 'Paid'),
+        ("processing", "Processing"),
         ('refunded', 'Refunded'),
     ]
+    
+    OWNERSHIP_TRANSFER_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('failed', 'Failed'),
+        ('processing', 'Processing'),
+    ]
+    
     id = models.UUIDField(primary_key=True, auto_created=True, unique=True, default=uuid.uuid4)
     item = models.ForeignKey('esc_nft.NFT', on_delete=models.CASCADE, related_name='orders')
     seller = models.ForeignKey('esc_trader.Trader', on_delete=models.CASCADE, related_name='orders_as_seller')
     buyer = models.ForeignKey('esc_trader.Trader', on_delete=models.CASCADE, related_name='orders_as_buyer')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid')
+    ownership_transfer_status = models.CharField(max_length=20, choices=OWNERSHIP_TRANSFER_STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     price = models.DecimalField(max_digits=15, decimal_places=5, null=True)
     updated_at = models.DateTimeField(auto_now=True)

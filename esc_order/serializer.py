@@ -15,6 +15,7 @@ class AddressSerializer(serializers.ModelSerializer):
         model = Address
         fields = "__all__"
         
+        
 class ShippingDetailsSerializer(serializers.ModelSerializer):
     buyer_address = AddressSerializer()
     seller_address = AddressSerializer()
@@ -65,6 +66,7 @@ class OrderSerializer(serializers.ModelSerializer):
     shippingDetails = ShippingDetailsSerializer(source="shipping_details")
     escrowTransaction = TokenTransactionSerializer(source="escrow_transaction")
     ownershipTransferTransaction = NFTTransactionRetrieveSerializer(source="ownership_transfer_transaction")
+    ownershipTransferStatus = serializers.CharField(source="ownership_transfer_status")
     class Meta:
         model = SwapOrder
         fields = [
@@ -86,5 +88,6 @@ class OrderSerializer(serializers.ModelSerializer):
             "price",
             "shippingDetails",
             "escrowTransaction",
-            "ownershipTransferTransaction"
+            "ownershipTransferTransaction",
+            'ownershipTransferStatus'
         ]

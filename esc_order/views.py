@@ -30,14 +30,18 @@ class AddressCreateView(APIView):
     def post(self, request):
         try:
             print(request.data)
-            address = request.data.get("address")
+            addressData = request.data.get("address")
             trader = Trader.objects.get(eco_user=request.user)
-            address_serializer = AddressSerializer(data=address)
+            if addressData["default"]:
+                for address in Address.objects.filter(trader=trader):
+                    address.default = False
+                    address.save()
+            address_serializer = AddressSerializer(data=addressData)
             if address_serializer.is_valid():
                 address = address_serializer.save()
                 address.trader = trader
                 address.save()
-                map_number_signal.send(sender = self, address = address)
+                map_number_signal.send(sender = self, addressPk = address.id)
                 return Response(data={"address" : address_serializer.data}, status=status.HTTP_201_CREATED)
             else:
                 return Response(data={"message": address_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -55,7 +59,13 @@ class AddressUpdateView(APIView):
     def put(self, request, address_id):
         try:
             address = Address.objects.get(id=address_id)
-            address_serializer = AddressSerializer(address, data=request.data)
+            newData=request.data.get("address")
+            if newData["default"]:
+                for ad in Address.objects.filter(trader=Trader.objects.get(eco_user=request.user)):
+                    if ad.id != address_id:
+                        ad.default = False
+                        ad.save()
+            address_serializer = AddressSerializer(address, data=newData)
             if address_serializer.is_valid():
                 address_serializer.save()
                 return Response(data={"message": "Address Updated Successfully"}, status=status.HTTP_200_OK)
@@ -190,10 +200,10 @@ class OrderConfirmView(APIView):
                 async_to_sync(channel_layer.group_send)(
                     f'order_{order.id}',
                     {
-                        'type' : 'buyer_confirmation'
+                        'type' : 'seller_confirmation'
                     }
                 )
-                order_creation_signal.send(sender=self, order=order)
+                order_creation_signal.send(sender=self, orderId=order.id)
 
                 return Response({"message": "Seller confirmed shipping details successfully"}, status=status.HTTP_200_OK)
             else:
@@ -237,8 +247,15 @@ class InitEscrowView(APIView):
                 transaction = transaction_serializer.save()
                 order.escrow_transaction = transaction
                 order.payment_status = "escrow"
+                order.ownership_transfer_status = "pending"
                 order.save()
-
+                async_to_sync(channel_layer.group_send)(
+                    f'order_{order.id}',
+                    {
+                        'type' : 'initiate_escrow',
+                        'transactionData' : transaction_serializer.data
+                    }
+                )
                 return Response({
                     "message": "Escrow transaction initialized successfully.",
                     "transactionData": transaction_serializer.data
@@ -252,6 +269,10 @@ class InitEscrowView(APIView):
             return Response({"message": "Validation failed.", "details": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"message": "An unexpected error occurred.", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
+        
+
 
                 
 class MessageRetrieveView(APIView):

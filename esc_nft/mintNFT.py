@@ -1,7 +1,12 @@
 import requests
 from esc_transaction.serializer import NFTTransactionSerializer
 from django.core.exceptions import ValidationError
+from requests.exceptions import RequestException
+from esc_order.models import SwapOrder
+from django.db import transaction
 import requests
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 def mint(nft):
     """Mints an NFT and deducts SwapCoin balance securely."""
@@ -80,23 +85,99 @@ def mint(nft):
         return None
 
 
-def transfer(order):
-    """Transfers an NFT to a new address."""
+def transfer_nft_price(sender, order, **kwargs):
     try:
-        response = requests.post(
-            f"http://localhost:3000/nft/transfer",  # Replace with actual API URL
-            json={
-                "mintAddress": order.item.address,
-                "recipientAddress": order.buyer.wallet.public_key
+        response = requests.get(f'http://localhost:3000/token/reward/{order.seller.wallet.public_key}/{order.escrow_transaction.amount}')
+        response.raise_for_status()  
+
+        data = response.json()
+        
+        order.seller.wallet.balance = order.seller.wallet.balance + Decimal(order.escrow_transaction.amount)
+        order.seller.wallet.save()
+        
+        order.item.owner = order.buyer
+        order.item.in_processing = False
+        order.item.save()
+        
+        order.payment_status = "paid"
+        order.save()
+        
+        order.escrow_transaction.status = "CONFIRMED"
+        order.escrow_transaction.transaction_type = "SELL"
+        order.escrow_transaction.transaction_hash = data['tx']
+        order.escrow_transaction.save()
+        
+        async_to_sync(channel_layer.group_send)(
+            f'order_{order.id}',
+            {
+                'type' : 'ownership_transfer',
+                'transactionHash' : data['tx'],
+                'tranactionType' : order.escrow_transaction.transaction_type,
+                'timestamp' : order.escrow_transaction.time_stamp,
+                'status' : order.escrow_transaction.status,
+                'payment_status' : order.payment_status,
             }
         )
         
-        tx = response.json()
-        print(tx)
-        return tx["tx"]
+    except RequestException as e:
+        raise RequestException(f"Error during request: {e}")
+    except ValueError as e:
+        raise ValueError(f"Data error: {e}")
+    except ValidationError as e:
+        raise ValidationError(f"Serialization error: {e}")
+    except Exception as e:
+        raise Exception(f"Unexpected error: {e}")
+
+
+def transfer(orderId, tx_hash):
+    """Transfers an NFT to a new address and records the transaction."""
+    try:
+        
+        channel_layer = get_channel_layer()
+        
+        order = SwapOrder.objects.select_related('item', 'buyer__wallet', 'seller__wallet').get(id=orderId)
+
+        # 2. 🧾 Save all DB updates in a safe atomic block
+        with transaction.atomic():
+            order.item.owner = order.buyer
+            order.item.in_processing = False
+            order.item.active = False
+            order.item.save()
+
+            tx_serializer = NFTTransactionSerializer(data={
+                "transaction_hash": tx_hash,
+                "transfered_to": order.buyer.wallet.pk,
+                "transfered_from": order.seller.wallet.pk,
+                "asset": order.item.pk,
+                "status": "CONFIRMED",
+                "transaction_type": "transfer"
+            })
+
+            if tx_serializer.is_valid():
+                tx_obj = tx_serializer.save()
+                order.ownership_transfer_transaction = tx_obj
+                order.ownership_transfer_status = "confirmed"
+                order.save()
+            else:
+                print("❌ Serializer errors:", tx_serializer.errors)
+                raise Exception("Transaction serialization failed.")
+
+        # 3. 📢 Notify via WebSocket
+        async_to_sync(channel_layer.group_send)(
+            f'order_{orderId}',
+            {
+                'type': 'nft_transfer',
+                'transactionData': tx_serializer.data,
+                'ownershipTransferStatus': order.ownership_transfer_status
+            }
+        )
+
+        # 4. 💸 Complete escrow + balance update
+        transfer_nft_price(order)
+
     except requests.exceptions.RequestException as e:
         print(f"❌ Request error: {e}")
-        return None
+        raise
     except Exception as e:
-        print(f"❌ Error: {e}")
-        return None
+        print(f"❌ Transfer error: {e}")
+        raise
