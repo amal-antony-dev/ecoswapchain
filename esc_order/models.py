@@ -47,6 +47,7 @@ class ShippingDetails(models.Model):
     source_hub = models.ForeignKey('esc_hub.Hub', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_hub')
     destination_hub = models.ForeignKey('esc_hub.Hub', on_delete=models.SET_NULL, null=True, blank=True, related_name='target_hub')
     current_hub = models.ForeignKey('esc_hub.Hub', on_delete=models.SET_NULL, null=True, blank=True, related_name='current_hub')
+    shipping_route = models.ManyToManyField("esc_hub.Route")
 
 
 

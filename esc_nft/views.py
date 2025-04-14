@@ -309,17 +309,8 @@ class NFTTransferView(APIView):
     def post(self, request):
         try:
             orderId = request.data.get("orderId")
-            tx_hash = request.data.get("txHash")
-            
-            if not tx_hash:
-                return Response({"message": "Missing Transaction Signature"}, status=status.HTTP_400_BAD_REQUEST)
-            
-            if not mint_address:
-                return Response({"message": "Missing Mint Address"}, status=status.HTTP_400_BAD_REQUEST)
-            
-            order = SwapOrder.objects.filter(id=orderId).first()           
+            tx_hash = request.data.get("txHash")      
             nft_transfer_signal.send(sender=self, orderId=orderId, tx_hash=tx_hash)
-            order.save()
             return Response({"message": "Transfer initiated and will be processed asynchronously"}, status=status.HTTP_200_OK)
         except Exception as e:
             print(e)

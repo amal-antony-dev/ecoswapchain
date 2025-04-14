@@ -1,4 +1,4 @@
-from esc_hub.models import Hub
+from esc_hub.models import Hub, Route
 from esc_hub.serializers import HubRetrieveSerializer
 import json
 import os
@@ -6,9 +6,104 @@ from .utils import get_lat_lon, get_distance
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from esc_order.models import SwapOrder
+import random
+import string
+import heapq
+from collections import defaultdict
 
 
-def findHub(orderId, **kwargs):
+def generate_tracking_number(prefix="EC", suffix_length=2, number_length=9):
+    """
+    Generate a random tracking number.
+    
+    Format: [prefix][number][suffix], e.g., EC123456789XY
+    
+    Args:
+        prefix (str): The starting letters for the tracking number.
+        suffix_length (int): Number of letters to add at the end.
+        number_length (int): Number of digits in the middle.
+
+    Returns:
+        str: A tracking number.
+    """
+    number_part = ''.join(random.choices(string.digits, k=number_length))
+    suffix_part = ''.join(random.choices(string.ascii_uppercase, k=suffix_length))
+    return f"{prefix}{number_part}{suffix_part}"
+
+
+
+import heapq
+from collections import defaultdict
+
+import heapq
+
+def findShortestPath(origin, destination):
+    """
+    Find the shortest path between two nodes in a graph using Dijkstra's algorithm.
+    Assumes Route model has: source (Node), destination (Node), cost (int).
+    """
+
+    print(f"Starting Dijkstra from Node {origin.id} to Node {destination.id}")
+
+    queue = [(0, origin.id)]
+    visited = set()
+    distances = {origin.id: 0}
+    predecessors = {}
+
+    while queue:
+        cost_so_far, current_node = heapq.heappop(queue)
+
+        if current_node in visited:
+            print(f"Node {current_node} already visited, skipping.")
+            continue
+        print(f"Visiting Node {current_node} with accumulated cost {cost_so_far}")
+        visited.add(current_node)
+
+        if current_node == destination.id:
+            print("Destination node reached.")
+            break
+
+        neighbors = list(Route.objects.filter(source_id=current_node)) + list(Route.objects.filter(destination_id=current_node))
+        print(f"  Found {len(neighbors)} neighbors for Node {current_node}")
+
+        for route in neighbors:
+            # Determine the actual neighbor (the other node connected by the route)
+            if route.source.id == current_node:
+                neighbor_id = route.destination.id
+            else:
+                neighbor_id = route.source.id
+
+            new_cost = cost_so_far + route.cost
+            print(f"    Checking neighbor {neighbor_id} with route cost {route.cost}")
+
+            if neighbor_id not in distances or new_cost < distances[neighbor_id]:
+                print(f"    Updating cost for Node {neighbor_id} to {new_cost}")
+                distances[neighbor_id] = new_cost
+                predecessors[neighbor_id] = current_node
+                heapq.heappush(queue, (new_cost, neighbor_id))
+
+    # Reconstruct path
+    print("Reconstructing path...")
+    path = []
+    current = destination.id
+    while current != origin.id:
+        print(f"  Tracing back from Node {current}")
+        path.insert(0, current)
+        current = predecessors.get(current)
+        if current is None:
+            print("No path found!")
+            return None
+    path.insert(0, origin.id)
+    print(f"Shortest path found: {path} with total cost {distances[destination.id]}")
+
+    return {
+        "path": path,
+        "total_cost": distances[destination.id]
+    }
+
+
+
+def findHub(orderId):
     channel_layer = get_channel_layer()
 
 
@@ -198,6 +293,7 @@ def findHub(orderId, **kwargs):
             sourceHub = HubRetrieveSerializer(order.shipping_details.source_hub).data
             destinationHub = HubRetrieveSerializer(order.shipping_details.destination_hub).data
             order.shipping_details.shipping_method = "swap"
+            order.shipping_details.tracking_number = generate_tracking_number()
         else:
             print("[DEBUG] Using self-shipping (direct route is better).")
             order.shipping_details.shipping_method = "self"
@@ -218,5 +314,6 @@ def findHub(orderId, **kwargs):
             "shippingMethod": order.shipping_details.shipping_method,
             "sourceHub": sourceHub,
             "destinationHub": destinationHub,
+            "trackingNumber" : order.shipping_details.tracking_number
         }
     )

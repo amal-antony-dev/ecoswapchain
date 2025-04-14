@@ -7,6 +7,7 @@ from django.db import transaction
 import requests
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from decimal import Decimal
 
 def mint(nft):
     """Mints an NFT and deducts SwapCoin balance securely."""
@@ -85,19 +86,20 @@ def mint(nft):
         return None
 
 
-def transfer_nft_price(sender, order, **kwargs):
+def transfer_nft_price(order):
     try:
+        
+        channel_layer = get_channel_layer()
+        
         response = requests.get(f'http://localhost:3000/token/reward/{order.seller.wallet.public_key}/{order.escrow_transaction.amount}')
         response.raise_for_status()  
 
         data = response.json()
         
         order.seller.wallet.balance = order.seller.wallet.balance + Decimal(order.escrow_transaction.amount)
+        order.buyer.wallet.balance = order.buyer.wallet.balance - Decimal(order.escrow_transaction.amount)
         order.seller.wallet.save()
-        
-        order.item.owner = order.buyer
-        order.item.in_processing = False
-        order.item.save()
+        order.buyer.wallet.save()
         
         order.payment_status = "paid"
         order.save()

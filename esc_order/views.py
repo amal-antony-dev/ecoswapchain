@@ -13,12 +13,15 @@ import uuid
 import random
 import string
 from datetime import datetime
-from esc_hub.models import Hub
+from esc_hub.models import Hub, Route
+from esc_hub.serializers import RouteSerializer
 from .signals import order_creation_signal, map_number_signal
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from esc_transaction.serializer import TokenTransactionCreationSerializer
 from rest_framework.exceptions import ValidationError
+from .hubFinder import findShortestPath
+from django.core.exceptions import ObjectDoesNotExist
 # Create your views here.
 
 channel_layer = get_channel_layer()
@@ -194,9 +197,7 @@ class OrderConfirmView(APIView):
             elif order.seller.eco_user == request.user:
                 # Seller confirmation
                 order.shipping_details.shipping_confirmed_by_seller = True
-                order.status = "confirmed"
                 order.shipping_details.save()
-                order.save()
                 async_to_sync(channel_layer.group_send)(
                     f'order_{order.id}',
                     {
@@ -271,7 +272,58 @@ class InitEscrowView(APIView):
             return Response({"message": "An unexpected error occurred.", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         
-        
+
+class FindShortestPathView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def post(self, request):
+        try:
+            orderId = request.data.get("orderId")
+            if not orderId:
+                return Response({"error": "Missing orderId"}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                order = SwapOrder.objects.get(id=orderId)
+            except ObjectDoesNotExist:
+                return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            source_hub = order.shipping_details.source_hub
+            destination_hub = order.shipping_details.destination_hub
+
+            result = findShortestPath(source_hub, destination_hub)
+
+            if result is None:
+                return Response({"error": "No path found between source and destination hubs"}, status=status.HTTP_404_NOT_FOUND)
+
+            path = result["path"]
+            order.shipping_details.shipping_route.clear()  # Clear existing route if reassigning
+
+            for i in range(len(path) - 1):
+                route = Route.objects.filter(source_id=path[i], destination_id=path[i + 1]).first()
+
+                if not route:
+                    route = Route.objects.filter(source_id=path[i + 1], destination_id=path[i]).first()
+
+                if route:
+                    order.shipping_details.shipping_route.add(route)
+                else:
+                    print(f"Warning: No route found between hubs {path[i]} and {path[i + 1]}")
+
+            order.shipping_details.save()
+
+            route_serializer = RouteSerializer(order.shipping_details.shipping_route.all(), many=True)
+
+            return Response({
+                "path": result["path"],
+                "total_cost": result["total_cost"],
+                "route_details": route_serializer.data
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print("Unexpected error in FindShortestPathView:", e)
+            return Response({"error": "An unexpected error occurred", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
                 

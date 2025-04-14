@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import SwapOrder, Message, Address, ShippingDetails
-from esc_hub.serializers import HubRetrieveSerializer
+from esc_hub.serializers import HubRetrieveSerializer, RouteSerializer
 from esc_transaction.serializer import TokenTransactionSerializer, NFTTransactionRetrieveSerializer
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -25,9 +25,12 @@ class ShippingDetailsSerializer(serializers.ModelSerializer):
     trackingNumber = serializers.CharField(source="tracking_number")
     sourceHub = HubRetrieveSerializer(source="source_hub")
     destinationHub = HubRetrieveSerializer(source="destination_hub")
+    shippingRoutes = RouteSerializer(source="shipping_route", many=True)
     class Meta:
         model = ShippingDetails
-        fields = ["buyer_address", "seller_address", "isSellerConfirmed", "isBuyerConfirmed", "shippingMethod", "trackingNumber", "sourceHub", "destinationHub"]
+        fields = ["buyer_address", "seller_address", "isSellerConfirmed",
+                  "isBuyerConfirmed", "shippingMethod", "trackingNumber",
+                  "sourceHub", "destinationHub", "shippingRoutes"]
 
 class OrderListSerializer(serializers.ModelSerializer):
     ownerId = serializers.IntegerField(source="item.owner.eco_user.id") 
