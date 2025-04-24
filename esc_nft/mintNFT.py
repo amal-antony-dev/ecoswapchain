@@ -102,6 +102,9 @@ def transfer_nft_price(order):
         order.buyer.wallet.save()
         
         order.payment_status = "paid"
+      
+        if order.shipping_details.shipping_method == "self":
+            order.status = "completed"
         order.save()
         
         order.escrow_transaction.status = "CONFIRMED"
@@ -115,7 +118,6 @@ def transfer_nft_price(order):
                 'type' : 'ownership_transfer',
                 'transactionHash' : data['tx'],
                 'tranactionType' : order.escrow_transaction.transaction_type,
-                'timestamp' : order.escrow_transaction.time_stamp,
                 'status' : order.escrow_transaction.status,
                 'payment_status' : order.payment_status,
             }

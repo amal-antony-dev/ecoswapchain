@@ -198,6 +198,7 @@ class OrderConfirmView(APIView):
                 # Seller confirmation
                 order.shipping_details.shipping_confirmed_by_seller = True
                 order.shipping_details.save()
+                order.save()
                 async_to_sync(channel_layer.group_send)(
                     f'order_{order.id}',
                     {
@@ -280,6 +281,7 @@ class FindShortestPathView(APIView):
     def post(self, request):
         try:
             orderId = request.data.get("orderId")
+            method = request.data.get("method")
             if not orderId:
                 return Response({"error": "Missing orderId"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -287,43 +289,81 @@ class FindShortestPathView(APIView):
                 order = SwapOrder.objects.get(id=orderId)
             except ObjectDoesNotExist:
                 return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+            
+            if method == "swap":
 
-            source_hub = order.shipping_details.source_hub
-            destination_hub = order.shipping_details.destination_hub
+                source_hub = order.shipping_details.source_hub
+                destination_hub = order.shipping_details.destination_hub
 
-            result = findShortestPath(source_hub, destination_hub)
+                result = findShortestPath(source_hub, destination_hub)
 
-            if result is None:
-                return Response({"error": "No path found between source and destination hubs"}, status=status.HTTP_404_NOT_FOUND)
+                if result is None:
+                    return Response({"error": "No path found between source and destination hubs"}, status=status.HTTP_404_NOT_FOUND)
 
-            path = result["path"]
-            order.shipping_details.shipping_route.clear()  # Clear existing route if reassigning
+                path = result["path"]
+                order.shipping_details.shipping_route.clear()  # Clear existing route if reassigning
 
-            for i in range(len(path) - 1):
-                route = Route.objects.filter(source_id=path[i], destination_id=path[i + 1]).first()
+                for i in range(len(path) - 1):
+                    route = Route.objects.filter(source_id=path[i], destination_id=path[i + 1]).first()
 
-                if not route:
-                    route = Route.objects.filter(source_id=path[i + 1], destination_id=path[i]).first()
+                    if not route:
+                        route = Route.objects.filter(source_id=path[i + 1], destination_id=path[i]).first()
 
-                if route:
-                    order.shipping_details.shipping_route.add(route)
-                else:
-                    print(f"Warning: No route found between hubs {path[i]} and {path[i + 1]}")
+                    if route:
+                        order.shipping_details.shipping_route.add(route)
+                    else:
+                        print(f"Warning: No route found between hubs {path[i]} and {path[i + 1]}")
 
-            order.shipping_details.save()
+                order.shipping_details.save()
+                order.status = "confirmed"
+                order.save()
+                
+    
+                route_serializer = RouteSerializer(order.shipping_details.shipping_route.all(), many=True)
 
-            route_serializer = RouteSerializer(order.shipping_details.shipping_route.all(), many=True)
+                async_to_sync(channel_layer.group_send)(
+                    f'order_{order.id}',
+                    {
+                        'type' : 'shipping_update',
+                        'method' : order.shipping_details.shipping_method,
+                        'routes' : route_serializer.data
+                    }
+                )
 
-            return Response({
-                "path": result["path"],
-                "total_cost": result["total_cost"],
-                "route_details": route_serializer.data
-            }, status=status.HTTP_200_OK)
+
+                return Response({
+                    "path": result["path"],
+                    "total_cost": result["total_cost"],
+                    "routes": route_serializer.data
+                }, status=status.HTTP_200_OK)
+                
+            else:
+                
+                order.status = "confirmed"
+                order.save()
+                order.shipping_details.shipping_method = "self"
+                order.shipping_details.save()
+                
+                async_to_sync(channel_layer.group_send)(
+                    f'order_{order.id}',
+                    {
+                        'type' : 'shipping_update',
+                        'method' : order.shipping_details.shipping_method,
+                        'routes' : None
+                        
+                    }
+                )
+                
+                return Response({
+                    "path": None,
+                    "total_cost": None,
+                    "routes": None
+                }, status=status.HTTP_200_OK)
 
         except Exception as e:
             print("Unexpected error in FindShortestPathView:", e)
             return Response({"error": "An unexpected error occurred", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 
                 

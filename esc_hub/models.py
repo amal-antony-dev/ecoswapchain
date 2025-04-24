@@ -15,7 +15,7 @@ class Hub(models.Model):
     )
 
     def __str__(self):
-        return f"{self.id} {self.district} ({self.hub_type})"
+        return f"{self.id} {self.district} ({self.hub_type} {self.pincode})"
 
 class Route(models.Model):
     """Represents a route between two hubs."""

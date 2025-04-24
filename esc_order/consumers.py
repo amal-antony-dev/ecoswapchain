@@ -100,6 +100,13 @@ class OrderConsumer(AsyncWebsocketConsumer):
             'destinationHub': event['destinationHub'],
         }))
         
+    async def shipping_update(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'shipping_update',
+            'method' : event['method'],
+            'routes' : event['routes']
+        }))
+        
     async def update_price(self, event):
         await self.send(text_data=json.dumps({
             'type' : 'update_price',

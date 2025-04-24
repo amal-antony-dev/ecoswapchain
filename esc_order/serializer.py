@@ -26,11 +26,12 @@ class ShippingDetailsSerializer(serializers.ModelSerializer):
     sourceHub = HubRetrieveSerializer(source="source_hub")
     destinationHub = HubRetrieveSerializer(source="destination_hub")
     shippingRoutes = RouteSerializer(source="shipping_route", many=True)
+    verificationStatus = serializers.CharField(source='product_verified')
     class Meta:
         model = ShippingDetails
         fields = ["buyer_address", "seller_address", "isSellerConfirmed",
                   "isBuyerConfirmed", "shippingMethod", "trackingNumber",
-                  "sourceHub", "destinationHub", "shippingRoutes"]
+                  "sourceHub", "destinationHub", "shippingRoutes", "verificationStatus"]
 
 class OrderListSerializer(serializers.ModelSerializer):
     ownerId = serializers.IntegerField(source="item.owner.eco_user.id") 
@@ -70,6 +71,7 @@ class OrderSerializer(serializers.ModelSerializer):
     escrowTransaction = TokenTransactionSerializer(source="escrow_transaction")
     ownershipTransferTransaction = NFTTransactionRetrieveSerializer(source="ownership_transfer_transaction")
     ownershipTransferStatus = serializers.CharField(source="ownership_transfer_status")
+   
     class Meta:
         model = SwapOrder
         fields = [
@@ -92,5 +94,22 @@ class OrderSerializer(serializers.ModelSerializer):
             "shippingDetails",
             "escrowTransaction",
             "ownershipTransferTransaction",
-            'ownershipTransferStatus'
+            'ownershipTransferStatus',
+   
         ]
+
+
+
+class OrderHubSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source='pk', read_only=True)
+    sellerName = serializers.CharField(source='seller.eco_user.username', read_only=True)
+    buyerName = serializers.CharField(source='buyer.eco_user.username', read_only=True)
+    productName = serializers.CharField(source='item.name', read_only=True)
+    shippingMethod = serializers.CharField(source='shipping_details.shipping_method', read_only=True)
+    verificationStatus = serializers.CharField(source='shipping_details.product_verified', read_only=True)
+    address = AddressSerializer(source='shipping_details.seller_address', read_only=True)
+    orderDate = serializers.DateTimeField(source='created_at', read_only=True)
+    
+    class Meta:
+        model = SwapOrder
+        fields = ["id", "sellerName", "buyerName", "productName", "shippingMethod", "verificationStatus", "address", "orderDate", "price"]

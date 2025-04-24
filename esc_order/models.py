@@ -36,6 +36,12 @@ class ShippingDetails(models.Model):
         ('swap', 'Swap Shipping Service'),
         ('self', 'Self Exchange'),
     ]
+    
+    VERIFICATION_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('verified', 'Verified'),
+        ('rejected', 'Rejected'),
+    ]
 
     shipping_method = models.CharField(max_length=20, choices=SHIPPING_METHOD_CHOICES, null=True, blank=True)
     seller_address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name='seller_shipping_details')
@@ -43,7 +49,7 @@ class ShippingDetails(models.Model):
     tracking_number = models.CharField(max_length=100, blank=True, null=True)
     shipping_confirmed_by_seller = models.BooleanField(default=False)
     shipping_confirmed_by_buyer = models.BooleanField(default=False)
-    product_verified = models.BooleanField(default=False)
+    product_verified = models.CharField(max_length=20, choices=VERIFICATION_STATUS_CHOICES, default='pending')
     source_hub = models.ForeignKey('esc_hub.Hub', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_hub')
     destination_hub = models.ForeignKey('esc_hub.Hub', on_delete=models.SET_NULL, null=True, blank=True, related_name='target_hub')
     current_hub = models.ForeignKey('esc_hub.Hub', on_delete=models.SET_NULL, null=True, blank=True, related_name='current_hub')
@@ -58,7 +64,7 @@ class SwapOrder(models.Model):
     ('processing', 'Processing'),      # Preparing for shipment
     ('packed', 'Packed'),              # Order has been packed
     ('shipped', 'Shipped'),            # Order is in transit
-    ('out-for-delivery', 'Out for Delivery'),  # Last-mile delivery in progress
+    ('completed', 'Completed'),  # Last-mile delivery in progress
     ('delivered', 'Delivered'),        # Order successfully delivered
     ('cancelled', 'Cancelled'),        # Order cancelled before shipment
 ]

@@ -176,14 +176,21 @@ def findHub(orderId):
                 sourceHub = HubRetrieveSerializer(order.shipping_details.source_hub).data
                 destinationHub = HubRetrieveSerializer(order.shipping_details.destination_hub).data
                 order.shipping_details.shipping_method = "swap"
+                order.status = "processing"
+         
             else:
                 print("[DEBUG] Using self-shipping (direct route is better).")
                 order.shipping_details.shipping_method = "self"
+                order.status = "confirmed"
+        
         else:
             print("[DEBUG] No hubs found in district. Using self-shipping.")
             order.shipping_details.shipping_method = "self"
+            order.status = "confirmed"
+
 
         order.shipping_details.save()
+        order.save()
 
         print(f"[DEBUG] Final shipping method: {order.shipping_details.shipping_method}")
         print(f"[DEBUG] Source Hub: {sourceHub}")
@@ -294,14 +301,21 @@ def findHub(orderId):
             destinationHub = HubRetrieveSerializer(order.shipping_details.destination_hub).data
             order.shipping_details.shipping_method = "swap"
             order.shipping_details.tracking_number = generate_tracking_number()
+            order.status = "processing"
+         
         else:
             print("[DEBUG] Using self-shipping (direct route is better).")
             order.shipping_details.shipping_method = "self"
+            order.status = "confirmed"
+
     else:
         print("[DEBUG] No hubs found in neighboring districts. Using self-shipping.")
         order.shipping_details.shipping_method = "self"
+        order.status = "confirmed"
+
 
     order.shipping_details.save()
+    order.save()
 
     print(f"[DEBUG] Final shipping method: {order.shipping_details.shipping_method}")
     print(f"[DEBUG] Source Hub: {sourceHub}")

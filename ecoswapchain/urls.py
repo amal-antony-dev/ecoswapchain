@@ -13,6 +13,7 @@ urlpatterns = [
     path('nfts/', include('esc_nft.urls')),
     path('product/', include('esc_product.urls')),
     path('order/', include('esc_order.urls')),
+    path('hub/', include('esc_hub.urls')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
