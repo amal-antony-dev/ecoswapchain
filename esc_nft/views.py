@@ -16,7 +16,8 @@ from .mintNFT import mint, transfer
 from esc_transaction.serializer import TokenTransactionCreationSerializer, NFTTransactionSerializer
 from esc_wallet.models import Wallet
 from esc_order.models import SwapOrder
-from .signals import nft_transfer_signal
+from .signals import nft_transfer_signal, sus_score_signal
+from .sus_predict import calculate_reward
 
 
 class NFTCreateView(APIView):
@@ -111,6 +112,8 @@ class NFTCreateView(APIView):
             nft.owner = Trader.objects.get(eco_user=request.user)
             nft.product = product
             nft.save()
+            
+            sus_score_signal.send(sender=self, nftId=nft.pk)
 
             return Response({"NFT": NFTSerializer(nft, many=False).data}, status=status.HTTP_201_CREATED)
 
@@ -197,6 +200,8 @@ class NFTMintView(APIView):
             nft.nft_type = "NFT"
             nft.status = True
             nft.save()
+            
+          
             
             data = {
                 "transaction_hash": txHash,

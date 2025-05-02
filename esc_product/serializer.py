@@ -81,9 +81,8 @@ class ProductSerializer(serializers.ModelSerializer):
     ethicalSourcing = serializers.BooleanField(source='ethical_sourcing')
     crueltyFree = serializers.BooleanField(source='cruelity_free')
     plasticFree = serializers.BooleanField(source='plastic_free')
-    natural = serializers.BooleanField()
-    destructable = serializers.BooleanField()
-    hazardous = serializers.BooleanField()
+    sustainabilityScore = serializers.FloatField(source='sustainability_score',  read_only=True)
+    
 
     class Meta:
         model = Product
@@ -108,7 +107,8 @@ class ProductSerializer(serializers.ModelSerializer):
             "natural",
             "destructable",
             "hazardous",
-            "owned_from"
+            "owned_from",
+            "sustainabilityScore"
         ]
         extra_kwargs = {
             "rootCategory": {"write_only": True},

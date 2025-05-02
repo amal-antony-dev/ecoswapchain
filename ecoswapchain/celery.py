@@ -12,6 +12,6 @@ app.autodiscover_tasks()
 
 # Optional: Configure task routes
 app.conf.task_routes = {
-    'esc_order.tasks.hubFinsingTask': {'queue': 'orders'},
+    'esc_order.tasks.hubFindingTask': {'queue': 'orders'},
     'esc_hub.tasks.mapNumberTask': {'queue': 'geocoding'},
 }

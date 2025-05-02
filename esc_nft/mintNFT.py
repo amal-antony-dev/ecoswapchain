@@ -8,6 +8,8 @@ import requests
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from decimal import Decimal
+from .sus_predict import calculate_reward
+from esc_wallet.tasks import initiateTransfer
 
 def mint(nft):
     """Mints an NFT and deducts SwapCoin balance securely."""
@@ -112,6 +114,9 @@ def transfer_nft_price(order):
         order.escrow_transaction.transaction_hash = data['tx']
         order.escrow_transaction.save()
         
+        initiateTransfer.delay(order.seller.wallet.pk, "REWARD", order.item.reward/2)
+        
+        
         async_to_sync(channel_layer.group_send)(
             f'order_{order.id}',
             {
@@ -144,6 +149,7 @@ def transfer(orderId, tx_hash):
         # 2. 🧾 Save all DB updates in a safe atomic block
         with transaction.atomic():
             order.item.owner = order.buyer
+            order.item.total_owners = order.item.total_owners + 1
             order.item.in_processing = False
             order.item.active = False
             order.item.save()
@@ -156,6 +162,8 @@ def transfer(orderId, tx_hash):
                 "status": "CONFIRMED",
                 "transaction_type": "transfer"
             })
+
+            calculate_reward(order.item.id)
 
             if tx_serializer.is_valid():
                 tx_obj = tx_serializer.save()

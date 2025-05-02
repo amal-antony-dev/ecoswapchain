@@ -35,12 +35,15 @@ class NFTDetailSerializer(serializers.ModelSerializer):
     treeAddress = serializers.CharField(source="tree_address")  # Rename tree_address to treeAddress
     traderId = serializers.IntegerField(source="owner.eco_user.id")
     ownershipHistory = serializers.SerializerMethodField()
+    totalOwners = serializers.IntegerField(source="total_owners")
+    
 
     class Meta:
         model = NFT
         fields = ["id", "address", "name", "description", "price", "product",
                   "exchange", "mainImage", "nftType", "leafIndex", 
-                  "treeAddress", "uri", "ownerPublicKey", "createdAt", "status", "traderId", "ownershipHistory"]  # Removed 'timestamp'
+                  "treeAddress", "uri", "ownerPublicKey", "createdAt", "status", "traderId",
+                  "ownershipHistory", "totalOwners", "reward"]  # Removed 'timestamp'
 
     def get_mainImage(self, obj):
         if obj.mainImage:  # Ensure mainImage exists

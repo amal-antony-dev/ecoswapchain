@@ -76,6 +76,8 @@ class Product(models.Model):
     destructable = models.BooleanField(default=False, help_text="Is the product destructible?")
     hazardous = models.BooleanField(default=False, help_text="Is the product hazardous?")
     
+    sustainability_score = models.FloatField(null=True, blank=True, help_text="Sustainability score (0-100).")
+    
     owned_from = models.DateField(auto_now=True)
     
     

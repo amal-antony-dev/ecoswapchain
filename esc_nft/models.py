@@ -37,6 +37,8 @@ class NFT(models.Model):
     uri = models.URLField(max_length=500)  # IPFS or Arweave metadata link
     timestamp = models.DateTimeField(auto_now_add=True)  # Use DateTime instead of CharField
     status = models.BooleanField(default=False)
+    total_owners = models.IntegerField(default=1)
+    reward = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     
     
 
