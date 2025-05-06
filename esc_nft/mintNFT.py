@@ -10,6 +10,7 @@ from asgiref.sync import async_to_sync
 from decimal import Decimal
 from .sus_predict import calculate_reward
 from esc_wallet.tasks import initiateTransfer
+from esc_wallet.utils import get_jwt_token
 
 def mint(nft):
     """Mints an NFT and deducts SwapCoin balance securely."""
@@ -92,8 +93,11 @@ def transfer_nft_price(order):
     try:
         
         channel_layer = get_channel_layer()
-        
-        response = requests.get(f'http://localhost:3000/token/reward/{order.seller.wallet.public_key}/{order.escrow_transaction.amount}')
+        token = get_jwt_token()
+        headers = {
+            'Authorization': f'Bearer {token}'
+        }
+        response = requests.get(f'http://localhost:3000/token/reward/{order.seller.wallet.public_key}/{order.escrow_transaction.amount}', headers=headers)
         response.raise_for_status()  
 
         data = response.json()
@@ -114,7 +118,8 @@ def transfer_nft_price(order):
         order.escrow_transaction.transaction_hash = data['tx']
         order.escrow_transaction.save()
         
-        initiateTransfer.delay(order.seller.wallet.pk, "REWARD", order.item.reward/2)
+        if order.item.reward > 1:
+            initiateTransfer.delay(order.seller.wallet.pk, "REWARD", order.item.reward/2)
         
         
         async_to_sync(channel_layer.group_send)(

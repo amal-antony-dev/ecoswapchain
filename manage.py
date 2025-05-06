@@ -4,34 +4,6 @@ import os
 import sys
 
 
-import requests
-import jwt
-import datetime
-from decouple import Config, RepositoryEnv
-
-NODE_API_URL = 'http://localhost:3000/ping/'
-
-file_path = "/media/alastor/New Volume/EcoSwapChain/ESC-Backend/esc-server-mint/ecoswapchain/configure .env"
-env_config = Config(RepositoryEnv(file_path))
-key = env_config.get('JWT_SECRET')
-
-def get_jwt_token():
-    print(key)
-    payload = {
-        'client': 'django-app',
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
-    }
-    return jwt.encode(payload, key, algorithm='HS256')
-
-def fetch_node_data():
-    token = get_jwt_token()
-    headers = {
-        'Authorization': f'Bearer {token}'
-    }
-    response = requests.get(NODE_API_URL, headers=headers)
-    return response.json()
-
-
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ecoswapchain.settings')
@@ -47,5 +19,4 @@ def main():
 
 
 if __name__ == '__main__':
-    fetch_node_data()
     main()

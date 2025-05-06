@@ -6,20 +6,27 @@ from decimal import Decimal
 from .models import Wallet
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+import requests
+from .utils import get_jwt_token
+
 
 channel_layer = get_channel_layer()
 
 def transferFromTreasury(walletPk, transaction_type, amount=0,):
     try:
         wallet = Wallet.objects.get(id=walletPk)
-        response = requests.get(f'http://localhost:3000/token/reward/{wallet.public_key}/{amount}')
+        token = get_jwt_token()
+        headers = {
+            'Authorization': f'Bearer {token}'
+        }
+        response = requests.get(f'http://localhost:3000/token/reward/{wallet.public_key}/{amount}', headers=headers)
         response.raise_for_status()  # Raise an error for non-200 responses
         data = response.json()
         wallet.balance = wallet.balance + Decimal(amount)
         wallet.save()
         transactionData = {
             "transaction_hash": data['tx'],
-            "amount": amount,
+            "amount": int(amount),
             "transfered_to": walletPk,
             "transaction_type": transaction_type,
             "status": "CONFIRMED"

@@ -15,7 +15,8 @@ import string
 from datetime import datetime
 from esc_hub.models import Hub, Route
 from esc_hub.serializers import RouteSerializer
-from .signals import order_creation_signal, map_number_signal
+from .tasks import hubFindingTask
+from .tasks import mapNumberTask
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from esc_transaction.serializer import TokenTransactionCreationSerializer
@@ -44,7 +45,7 @@ class AddressCreateView(APIView):
                 address = address_serializer.save()
                 address.trader = trader
                 address.save()
-                map_number_signal.send(sender = self, addressPk = address.id)
+                mapNumberTask.delay(address.id)
                 return Response(data={"address" : address_serializer.data}, status=status.HTTP_201_CREATED)
             else:
                 return Response(data={"message": address_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -196,6 +197,7 @@ class OrderConfirmView(APIView):
                 return Response({"message": "Buyer confirmed shipping details successfully"}, status=status.HTTP_200_OK)
             elif order.seller.eco_user == request.user:
                 # Seller confirmation
+                hubFindingTask.delay(order.id)
                 order.shipping_details.shipping_confirmed_by_seller = True
                 order.shipping_details.save()
                 order.save()
@@ -205,8 +207,6 @@ class OrderConfirmView(APIView):
                         'type' : 'seller_confirmation'
                     }
                 )
-                order_creation_signal.send(sender=self, orderId=order.id)
-
                 return Response({"message": "Seller confirmed shipping details successfully"}, status=status.HTTP_200_OK)
             else:
                 return Response({"message" : "You are not authorized to perform this action"}, status=status.HTTP_401_UNAUTHORIZED)

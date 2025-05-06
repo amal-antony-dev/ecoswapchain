@@ -127,7 +127,6 @@ class OrderConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type' : 'ownership_transfer',
             'transactionHash' : event['transactionHash'],
-            'timestamp' : event['timestamp'],
             'status' : event['status'],
             'payment_status' : event['payment_status'],
         }))
