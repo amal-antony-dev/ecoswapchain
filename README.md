@@ -1,167 +1,372 @@
-🌿 EcoSwapChain
+# EcoSwapChain 
 
 EcoSwapChain is a blockchain-powered recommerce platform that addresses the environmental challenges of consumerism and product waste by enabling secure, transparent, and eco-conscious second-hand trading. Traditional resale platforms often lack authenticity, traceability, and trust, leading to fraud and disputes. EcoSwapChain solves these problems by integrating NFT-backed product ownership, escrow-based payments, and carbon credit incentives.
-🧠 Key Features
 
-    NFT-backed Products: Each listed product is minted as an NFT, ensuring verifiable authenticity and traceable ownership.
+## 🧠 Key Features
 
-    Escrow-based Transactions: Funds are securely held until both buyer and seller fulfill their obligations.
+  **NFT-backed Products**
+    : Each listed product is minted as an NFT, ensuring verifiable authenticity and traceable ownership.
 
-    SwapCoin Utility Token: A custom Solana token for all payments and incentives.
+  **Escrow-based Transactions**
+    : Funds are securely held until both buyer and seller fulfill their obligations.
 
-    Carbon Credit Rewards: Users are rewarded based on sustainability metrics and product transfer count.
+  **SwapCoin Utility Token**
+    : A custom Solana token for all payments and incentives.
 
-    District-based Hub Assignment: Smart logistics with optimal hub assignments for product verification and delivery.
+  **Carbon Credit Rewards**
+    : Users are rewarded based on sustainability metrics and product transfer count.
 
-    Secure On-chain Interaction: Private keys are encrypted and stored client-side; all transactions require password-based authorization.
+  **District-based Hub Assignment**
+    : mart logistics with optimal hub assignments for product verification and delivery.
 
-🔧 Tech Stack
+  **Secure On-chain Interaction**
+    : Private keys are encrypted and stored client-side; all transactions require password-based authorization.
 
-    Frontend: React + Vite + Material UI
+## 🔧 Tech Stack
 
-    Backend: Django + Django REST Framework
+   **Frontend: React + Vite + Material UI**
 
-    Blockchain: Solana (NFTs, SwapCoin token, ownership transfer)
+   **Backend: Django + Django REST Framework**
 
-    Machine Learning: Scikit-learn (Gradient Boosting for sustainability prediction)
+   **Blockchain: Solana** (NFTs, SwapCoin token, ownership transfer)
 
-    Database: PostgreSQL
+   **Machine Learning: Scikit-learn** (Gradient Boosting for sustainability prediction)
 
-    Others: Redis, Celery, WebSockets (Django Channels)
+   **Database: PostgreSQL**
 
-🚀 Installation & Setup
-1. Clone the Repository
+   **Others: Redis, Celery, WebSockets** (Django Channels)
 
-git clone https://github.com/yourusername/ecoswapchain.git
+## 🚀 Installation & Setup
+
+To run this project locally, you must run three servers simultaneously:**Django**, **React**, and **Express** (microservice).
+Before that, **blockchain** setup is required.
+
+### BlockChain SetUp(Solana)
+
+#### 🧱 Solana CLI & SPL Token CLI Installation
+
+##### 🪟 Windows Installation
+
+1. Install Git & Windows Subsystem for Linux (WSL)
+
+2. Install Git for Windows.
+
+3. Enable WSL and install Ubuntu from the Microsoft Store.
+
+4. Open the Ubuntu terminal and continue with the Linux instructions below.
+
+(Alternative - Native Windows using Git Bash)
+
+1. sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
+
+2. Add Solana to PATH manually if not prompted:
+
+3. export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+
+4. Restart terminal and verify installation:
+
+solana --version
+
+##### 🐧 Linux Installation
+
+1. Install Solana CLI
+
+2. sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
+
+3. Add Solana to PATH
+
+4. export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+
+5. Persist it by adding to ~/.bashrc or ~/.zshrc:
+
+6. source ~/.bashrc
+
+7. Verify Installation
+
+solana --version
+
+##### Set Devnet for Testing
+
+solana config set --url https://api.devnet.solana.com
+
+##### 💼 Solana Wallet Setup
+
+1. Generate a New Keypair
+
+solana-keygen new --outfile ~/my-wallet.json
+
+2. 🔐 Save the mnemonic phrase securely.
+
+3. Set Wallet as Default
+
+solana config set --keypair ~/my-wallet.json
+
+4. Airdrop SOL to Wallet (Devnet only)
+
+solana airdrop 2
+
+#### 💰 SPL Token Creation (Requires Rust)
+
+##### 🦀 Rust Installation
+
+**Linux**
+
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+source $HOME/.cargo/env
+
+Verify:
+
+rustc --version
+
+cargo --version
+
+**Windows**
+
+Visit: https://www.rust-lang.org/tools/install
+
+Download rustup-init.exe and run it.
+
+Choose default installation.
+
+Verify:
+
+rustc --version
+
+cargo --version
+
+##### 📦 Install SPL CLI & Create Token
+
+1. Install SPL CLI
+
+cargo install spl-token-cli
+
+2. Create the SPL Token
+
+spl-token create-token
+
+✅ Copy the returned Token Mint Address (e.g., Wxyz1234...)
+
+3. Create Token Account
+
+spl-token create-account <TOKEN_MINT_ADDRESS>
+
+4. Mint Tokens
+
+spl-token mint <TOKEN_MINT_ADDRESS> <AMOUNT>
+
+5. Check Token Balance
+
+spl-token accounts
+
+### 🗂️ Pinata Setup (for NFT Metadata)
+#### 🛠 Steps to Create a Free Pinata Account
+
+Visit https://www.pinata.cloud/
+
+Click Sign Up → Choose "Pinata Free" Plan
+
+Fill in Name, Email, Password
+
+Verify email using confirmation link
+
+Log in and navigate to API Keys tab to generate a JWT
+
+Use https://gateway.pinata.cloud/ipfs/<hash> for accessing files
+
+**After setting up solana, its best you clone the microservice before backend and frontend. This microservice allows the seamless admin blockchain interactions and must be run before the backend as a good practice**
+
+### Microservice setup
+
+1. clone this repo as a seperate project
+
+2. cd project-name
+
+**Create a .env file at the root dir and add these**
+
+token_mint_address=<YOUR_TOKEN_MINT_ADDRESS>
+
+devnet_url=https://api.devnet.solana.com
+
+treasury_wallet_path=path where you saved the previously generated keypair
+
+JWT_SECRET=a random hash used for authentication(same for both django and express servers)
+
+4. npm install
+
+5. nodemon index.js
+
+### ⚙️ Backend Setup (Django)
+
+python -m venv venv-name
+
+source venv/bin/activate  
+
+Windows: venv\Scripts\activate
+
+git clone https://github.com/antonyamal-3-6-9/ecoswapchain.git
+
 cd ecoswapchain
 
-2. Backend Setup (Django)
+**Create .env file near manage.py and include:**
 
-cd backend
-python -m venv venv
-source venv/bin/activate         # On Windows: venv\Scripts\activate
+SECRET_KEY=some-random-key
+
+SENDGRID_API_KEY=...
+
+DEBUG=True
+
+DB_NAME=...
+
+DB_USER=...
+
+DB_PASSWORD=...
+
+DB_HOST=...
+
+DB_PORT=...
+
+token_mint_address=<YOUR_TOKEN_MINT_ADDRESS>
+
+treasury_key=<TREASURY_PUBLIC_KEY>
+
+devnet_url=https://api.devnet.solana.com
+
+PINATA_JWT=<YOUR_PINATA_JWT>
+
+JWT_SECRET=a random hash used for authentication(same for both django and express servers)
+
+Then:
+
 pip install -r requirements.txt
+
 python manage.py migrate
+
 python manage.py runserver
 
-3. Frontend Setup (React + Vite)
+### 🌐 Frontend Setup (React + Vite)
 
-cd frontend
-npm install
-npm run dev
+1. clone repo
 
-🔄 Workflow Overview
-System Purpose
+2. cd frontend
 
-EcoSwapChain acts as a middleware between users and the blockchain. It stores crucial blockchain metadata to reduce query load and minimize on-chain transaction costs.
+3. npm install
 
-Workflow Overview
-User Onboarding
+4. npm run dev
 
-    Register using OTP verification.
+##🔄 Workflow Overview
 
-    Wallet generated and encrypted using symmetric encryption.
+###👤 User Onboarding
 
-    User receives encryption key (must be stored securely).
+Register using OTP(by default, otp can be read from server log)
 
-    Add a default address in a district with an available shipping hub.
+Wallet is generated and encrypted
 
-    Get rewarded with 100 SWAPCOINS upon successful registration.
+User stores encryption key securely
 
-🪙 NFT Minting Flow
+Add address in a district with shipping hub
 
-    Go to Create Product.
+Receive 100 SWAPCOINS
 
-    Fill out the product form.
+### 🪙 NFT Minting Flow
 
-    On submission, 20 SWAPCOINS are deducted.
+Create Product → Fill Form
 
-    User signs transaction using their stored transaction password.
+Deduct 20 SWAPCOINS
 
-    NFT minted, transaction hash and address sent to backend and linked to user.
+Sign transaction with password
 
-    You can verify the minting at Solana Explorer (Devnet).
+NFT minted and linked to user
 
-🛒 Order Creation & Chat Workflow
+### 🛒 Order & Chat
 
-    Open a second browser and register a new user.
+Buyer explores & orders NFT
 
-    New user explores and orders a listed NFT.
+Chat for negotiation (WebSocket)
 
-    Real-time chat allows negotiation (built using WebSockets).
+Buyer confirms → Seller confirms
 
-    Buyer confirms negotiated price.
+### 📦 Logistics & Shipping
 
-    Seller performs final confirmation.
+Hubs assigned based on districts
 
-📦 Logistics & Shipping Logic
+Shipping Methods:
 
-    A background process assigns hubs based on the districts of both parties.
+Swap (platform-managed)
 
-    Shipping methods:
+Self (user-managed)
 
-        Swap (platform-verified & shipped)
+### ✅ Product Verification
 
-        Self (user-verified & collected)
+Swap:
 
-✅ Product Verification & Transactions
-If shipping method is Swap:
+    Hub manager verifies
 
-    Hub Manager logs in to verify the product.
+    Buyer pays (escrow)
 
-    If valid, the system allows:
+    NFT transferred
 
-        Buyer to pay in SWAPCOINS (escrowed).
+Self:
 
-        Seller to transfer NFT ownership.
+    Seller initiates
 
-If shipping method is Self:
+    Buyer verifies
 
-    Seller initiates verification.
+    Transfer & payment completed
 
-    Buyer manually validates the product.
+### 🔐 Blockchain Actions
 
-    Both complete payment and ownership transfer.
+**All on-chain actions require the transaction password.**
 
-🔐 All blockchain actions require the transaction password stored during registration.
-🔁 Relisting and Rewards
+### 🔁 Relisting & Rewards
 
-    Ownership history viewable in the NFT detail page.
+    View NFT ownership history
 
-    Owner can choose to list or unlist the NFT.
+    List/unlist owned NFTs
 
     Rewards based on:
 
-        Sustainability Score
+        Sustainability score predicted using **Gradient Boosting model trained with 90% accuracy**
 
-        Transfer Count
+        Transfer count
 
-🏆 Rewards are distributed in SWAPCOINS, calculated using a trained Gradient Boosting Regressor on synthetic data with 90%+ training accuracy.
-🛠 Admin Dashboard
+🏆 Rewards = SWAPCOINS
 
-    Add shipping hubs via map interface.
+### 🛠 Admin Dashboard
 
-    Create routes between hubs.
+    Add hubs via map UI
 
-    Manage logistics visually and efficiently.
+    Create routes between hubs
 
-🧱 System Architecture
+    Manage logistics visually
 
-High-level Architecture
+## 🧱 System Architecture
 
-Component Diagram
-📚 Summary
+    Frontend ↔ Backend ↔ Blockchain ↔ ML Model
 
-EcoSwapChain merges blockchain innovation with sustainable commerce. It offers:
+    Redis/Celery for async tasks
 
-    Transparent product history through NFTs.
+    WebSockets for live chat
 
-    Fraud-proof transactions via escrow.
+    PostgreSQL for data
+    
+![architecture](https://github.com/user-attachments/assets/63e27a3a-c39e-4cd4-b3cd-d136108b93bc)
 
-    A carbon-conscious incentive model.
+![arctec](https://github.com/user-attachments/assets/3c8d1327-10ab-4010-82ba-fe0758cce093)
 
-    Real-time order communication and verification.
 
-    Smart logistics with dynamic hub assignments.
+## 📚 Summary
 
-    Empowering users to buy and sell responsibly while contributing to a greener planet.
+EcoSwapChain merges blockchain and sustainability, offering:
+
+    Transparent product history via NFTs
+
+    Escrow-protected transactions
+
+    Carbon-conscious incentives
+
+    Real-time negotiation
+
+    Smart logistics and dynamic hub assignments
+
+**Empowering users to buy and sell responsibly, while contributing to a greener planet 🌍**
