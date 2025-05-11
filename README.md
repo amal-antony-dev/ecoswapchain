@@ -258,9 +258,9 @@ python manage.py runserver
 
 **And Volia!!!, You are up and running**
 
-##🔄 Workflow Overview
+## 🔄 Workflow Overview
 
-###👤 User Onboarding
+### 👤 User Onboarding
 
 Register using OTP(by default, otp can be read from server log)
 
