@@ -179,8 +179,9 @@ Use https://gateway.pinata.cloud/ipfs/<hash> for accessing files
 ### Microservice setup
 
 1. clone this repo as a seperate project
+   https://github.com/antonyamal-3-6-9/ESC-BlockChain
 
-2. cd project-name
+3. cd MiddleLayer
 
 **Create a .env file at the root dir and add these**
 
@@ -247,12 +248,15 @@ python manage.py runserver
 ### 🌐 Frontend Setup (React + Vite)
 
 1. clone repo
+  https://github.com/antonyamal-3-6-9/ESC-Frontend
 
-2. cd frontend
+3. cd EcoSwapChain
 
-3. npm install
+4. npm install
 
-4. npm run dev
+5. npm run dev
+
+**And Volia!!!, You are up and running**
 
 ##🔄 Workflow Overview
 
