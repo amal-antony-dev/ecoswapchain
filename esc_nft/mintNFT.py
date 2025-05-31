@@ -11,6 +11,7 @@ from decimal import Decimal
 from .sus_predict import calculate_reward
 from esc_wallet.tasks import initiateTransfer
 from esc_wallet.utils import get_jwt_token
+from django.conf import settings
 
 def mint(nft):
     """Mints an NFT and deducts SwapCoin balance securely."""
@@ -97,7 +98,7 @@ def transfer_nft_price(order):
         headers = {
             'Authorization': f'Bearer {token}'
         }
-        response = requests.get(f'http://localhost:3000/token/reward/{order.seller.wallet.public_key}/{order.escrow_transaction.amount}', headers=headers)
+        response = requests.get(f'{settings.blockchain_url}/token/reward/{order.seller.wallet.public_key}/{order.escrow_transaction.amount}', headers=headers)
         response.raise_for_status()  
 
         data = response.json()

@@ -8,6 +8,7 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import requests
 from .utils import get_jwt_token
+from django.conf import settings
 
 
 channel_layer = get_channel_layer()
@@ -19,7 +20,7 @@ def transferFromTreasury(walletPk, transaction_type, amount=0,):
         headers = {
             'Authorization': f'Bearer {token}'
         }
-        response = requests.get(f'http://localhost:3000/token/reward/{wallet.public_key}/{amount}', headers=headers)
+        response = requests.get(f'{settings.blockchain_url}/token/reward/{wallet.public_key}/{amount}', headers=headers)
         response.raise_for_status()  # Raise an error for non-200 responses
         data = response.json()
         wallet.balance = wallet.balance + Decimal(amount)

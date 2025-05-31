@@ -5,6 +5,7 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 from decouple import Config, RepositoryEnv
 from .models import Otp
+from django.conf import settings
 
 class EmailOtpCreateView(APIView):
 
@@ -15,9 +16,7 @@ class EmailOtpCreateView(APIView):
             subject='OTP VERIFICATION SWAPCHAIN',
             html_content=f'<strong> Your Verification code is {otp}</strong>')
         try:
-            file_path = "/media/alastor/New Volume/EcoSwapChain/ESC-Backend/esc-server-mint/ecoswapchain/configure .env"
-            env_config = Config(RepositoryEnv(file_path))
-            sg = SendGridAPIClient(env_config.get('SENDGRID_API_KEY'))
+            sg = SendGridAPIClient(settings.sendgrid_key)
             response = sg.send(message)
             return response.status_code
         except Exception as e:

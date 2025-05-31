@@ -9,9 +9,9 @@ from rest_framework.exceptions import NotFound
 from esc_trader.models import Trader
 from .models import Wallet
 from esc_wallet.walletActions import transferFromTreasury 
-from decouple import RepositoryEnv, Config
 import requests
 from .tasks import initiateTransfer
+from django.conf import settings
 
 # Load environment variables
 
@@ -95,13 +95,11 @@ class NFTMintFeeTransferView(APIView):
                 return Response({"error": "Trader wallet not found."}, status=status.HTTP_404_NOT_FOUND)
 
             # Validate password for wallet access
-            file_path = "/media/alastor/New Volume/EcoSwapChain/ESC-Backend/swap-server/ecoswapchain/configure .env"  # Ensure there's no space in ".env"
-            env_config = Config(RepositoryEnv(file_path))
             if trader.wallet.check_key(password):
                 return Response(
-                    {"treasuryKey": "6iPxdjHimmNrLemHX7RX6NwvEJiBAaChVLA9ivQtUy3b", "encKey": trader.wallet.private_key, 
-                     "rpcUrl" : env_config.get('devnet_url'), 
-                     "mintAddress" : env_config.get('token_mint_address')},
+                    {"treasuryKey": settings.treasury_key, "encKey": trader.wallet.private_key, 
+                     "rpcUrl" : settings.devnet_url,
+                     "mintAddress" : settings.token_mint_address},
                     status=status.HTTP_200_OK
                 )
             else:
