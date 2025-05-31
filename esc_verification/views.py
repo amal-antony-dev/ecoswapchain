@@ -3,9 +3,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
-from decouple import Config, RepositoryEnv
 from .models import Otp
-from django.conf import settings
+from ecoswapchain.settings import sendgrid_key
 
 class EmailOtpCreateView(APIView):
 

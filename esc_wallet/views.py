@@ -11,7 +11,7 @@ from .models import Wallet
 from esc_wallet.walletActions import transferFromTreasury 
 import requests
 from .tasks import initiateTransfer
-from django.conf import settings
+from ecoswapchain.settings import treasury_key, token_mint_address, devnet_url
 
 # Load environment variables
 
@@ -97,9 +97,9 @@ class NFTMintFeeTransferView(APIView):
             # Validate password for wallet access
             if trader.wallet.check_key(password):
                 return Response(
-                    {"treasuryKey": settings.treasury_key, "encKey": trader.wallet.private_key, 
-                     "rpcUrl" : settings.devnet_url,
-                     "mintAddress" : settings.token_mint_address},
+                    {"treasuryKey": treasury_key, "encKey": trader.wallet.private_key, 
+                     "rpcUrl" : devnet_url,
+                     "mintAddress" : token_mint_address},
                     status=status.HTTP_200_OK
                 )
             else:
@@ -220,5 +220,6 @@ class SwapCoinPurchaseView(APIView):
                     return Response({"error": "Wallet not found."}, status=status.HTTP_404_NOT_FOUND)
                 
             except Exception as e:
+                print(e)
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
             
