@@ -52,9 +52,20 @@ class CheckUser(APIView):
             return Response({
                 "message": "Internal server error"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+        except Exception as e:
+            print("OAuth2 Callback Error:", str(e))
+            return Response({"message": "OAuth2 callback error", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
         
 class LogoutView(APIView):
     def post(self, request):
         response = Response({"message": "Logged out"}, status=status.HTTP_200_OK)
         response.delete_cookie("refresh_token")  # Remove refresh token cookie
         return response
+
+

@@ -1,0 +1,51 @@
+server {
+    listen 80;
+    server_name 3.110.249.118;
+
+    location /static/ {
+        alias/home/ubuntu/Swapchain/Backend/swap-server/ecoswapchain/staticfiles/;
+    }
+
+    location /media/ {
+        alias /home/ubuntu/Swapchain/Backend/swap-server/ecoswapchain/media/;
+    }
+
+    location /ws/ {
+        proxy_pass http://unix:/tmp/daphne.sock:;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_redirect off;
+        proxy_set_header Host $host;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+
+
+
+[program:ecoswapchain_gunicorn]
+command=/home/ubuntu/Swapchain/Backend/swap-server/bin/gunicorn --env DJANGO_SETTINGS_MODULE=ecoswapchain.settings --workers 3 --bind unix:/home/ubuntu/Swapchain/Backend/swap-server/run/gunicorn.sock ecoswapchain.wsgi:application
+directory=/home/ubuntu/Swapchain/Backend/swap-server/ecoswapchain
+user=
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+redirect_stderr=true
+stdout_logfile=/home/ubuntu/Swapchain/Backend/swap-server/logs/gunicorn.log
+
+[program:ecoswapchain_daphne]
+command=/home/ubuntu/Swapchain/Backend/swap-server/bin/daphne -u /home/ubuntu/Swapchain/Backend/swap-server/run/daphne.sock ecoswapchain.asgi:application
+directory=/home/ubuntu/Swapchain/Backend/swap-server/ecoswapchain
+user=ubuntu
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+redirect_stderr=true
+stdout_logfile=/home/ubuntu/Swapchain/Backend/swap-server/logs/daphne.log

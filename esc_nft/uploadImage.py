@@ -2,10 +2,7 @@ import os
 import json
 import requests
 from decouple import RepositoryEnv, Config
-
-# Load environment variables
-file_path = "/media/alastor/New Volume/EcoSwapChain/ESC-Backend/swap-server/ecoswapchain/configure .env"  # Ensure there's no space in ".env"
-env_config = Config(RepositoryEnv(file_path))
+from ecoswapchain.settings import pinata_jwt
 
 
 def pin_file_to_ipfs(file_path):
@@ -15,7 +12,7 @@ def pin_file_to_ipfs(file_path):
     try:
         with open(file_path, "rb") as file:
             files = {"file": file}
-            headers = {"Authorization": f"Bearer {env_config.get('PINATA_JWT')}"}
+            headers = {"Authorization": f"Bearer {pinata_jwt}"}
 
             response = requests.post(url, files=files, headers=headers)
             response.raise_for_status()  # Raise HTTP errors
