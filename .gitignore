@@ -1,2 +1,7 @@
 configure .env
 ecoswapchain/settings.py
+
+# Bytecode and secrets
+__pycache__/
+*.pyc
+.env
